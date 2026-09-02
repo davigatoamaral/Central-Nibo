@@ -1,2117 +1,425 @@
-import { useState, useEffect } from "react";
-import {
-  Home,
-  Inbox,
-  Video,
-  Plug,
-  CheckCircle2,
-  Circle,
-  Clock,
-  MessageCircle,
-  Bot,
-  Building2,
-  Sparkles,
-  Send,
-  FileText,
-  ChevronRight,
-  ChevronDown,
-  Link2,
-  ExternalLink,
-  Phone,
-  Users,
-  Ticket,
-  Search,
-  Briefcase,
-  Copy,
-  Check,
-  CalendarDays,
-  Plus,
-  RefreshCw,
-  X,
-  Mail,
-  Video as VideoIcon,
-  FolderOpen,
-  ListChecks,
-  Loader2,
-  AlertCircle,
-  ClipboardCheck,
-  GripVertical,
-} from "lucide-react";
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Malha — Reuniões transcritas</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+  :root {
+    --bg: #F4F6FA; --surface: #FFFFFF; --surface-alt: #EEF2F8; --border: #DDE3ED;
+    --ink: #1C2420; --ink-soft: #5B6560; --navy: #12285B; --navy-soft: #5C6E93;
+    --brand-soft: #E1E7F2; --indigo: #46538F; --indigo-soft: #E2E5F3;
+    --amber: #B9793A; --amber-soft: #F3E4D0; --red: #9B3B3B; --red-soft: #F1DEDE;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, "Segoe UI", Inter, Arial, sans-serif; background: var(--bg); color: var(--ink); }
+  .topo {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 24px; background: var(--navy); color: white;
+  }
+  .topo h1 { font-size: 15px; margin: 0; font-weight: 600; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px; border: none; border-radius: 8px;
+    padding: 9px 15px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit;
+  }
+  .btn-branco { background: white; color: var(--navy); }
+  .btn-primario { background: var(--navy); color: white; }
+  .btn-secundario { background: var(--brand-soft); color: var(--navy); }
+  .btn:disabled { opacity: .6; cursor: not-allowed; }
 
-const tokens = {
-  bg: "#F4F6FA",
-  surface: "#FFFFFF",
-  surfaceAlt: "#EEF2F8",
-  ink: "#1C2420",
-  inkSoft: "#5B6560",
-  border: "#DDE3ED",
-  brand: "#12285B",
-  brandSoft: "#E1E7F2",
-  amber: "#B9793A",
-  amberSoft: "#F3E4D0",
-  indigo: "#46538F",
-  indigoSoft: "#E2E5F3",
-  red: "#9B3B3B",
-  redSoft: "#F1DEDE",
-  sidebarBg: "#E7EEF5",
-  sidebarActive: "#FFFFFF",
-  navy: "#12285B",
-  navySoft: "#5C6E93",
-};
+  .gate {
+    max-width: 420px; margin: 80px auto; text-align: center; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 12px; padding: 40px 28px;
+  }
+  .gate p { color: var(--ink-soft); font-size: 14px; margin-bottom: 20px; }
 
-const NIBO_LOGO_SRC = "data:image/png;base64,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";
+  .app { display: none; }
+  .app.ativo { display: flex; min-height: calc(100vh - 50px); }
+  .lista { width: 320px; flex-shrink: 0; padding: 24px 16px; border-right: 1px solid var(--border); background: var(--surface); }
+  .lista h2 { font-size: 18px; margin: 0 0 4px; }
+  .lista .subtitulo { font-size: 13px; color: var(--ink-soft); margin: 0 0 20px; }
+  .arquivo {
+    display: block; width: 100%; text-align: left; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; cursor: pointer; font-family: inherit;
+  }
+  .arquivo:hover { border-color: var(--navy); }
+  .arquivo.ativo { background: var(--brand-soft); border-color: var(--navy); }
+  .arquivo .nome { font-size: 13px; font-weight: 600; color: var(--ink); }
+  .arquivo .meta { font-size: 11px; color: var(--ink-soft); margin-top: 3px; }
+  .badge { display: inline-block; margin-top: 6px; font-size: 11px; padding: 2px 8px; border-radius: 999px; }
+  .badge.naoAberto { background: var(--surface-alt); color: var(--ink-soft); }
+  .badge.carregando { background: var(--amber-soft); color: var(--amber); }
+  .badge.revisao { background: var(--indigo-soft); color: var(--indigo); }
+  .badge.enviado { background: var(--brand-soft); color: var(--navy); }
 
-function NiboLogo({ height = 26 }) {
-  return (
-    <img
-      src={NIBO_LOGO_SRC}
-      alt="nibo"
-      style={{ height, width: "auto", display: "block" }}
-    />
-  );
-}
+  .detalhe { flex: 1; padding: 24px 32px; overflow-y: auto; }
+  .vazio { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 80px 20px; text-align: center; color: var(--ink-soft); font-size: 14px; }
+  .transcricao { background: var(--surface-alt); color: var(--ink-soft); border-radius: 10px; padding: 14px 16px; font-size: 13px; line-height: 1.6; max-height: 160px; overflow-y: auto; white-space: pre-line; margin-bottom: 16px; }
 
-const pendencias = [
-  {
-    id: 1,
-    fonte: "reuniao",
-    cliente: "Grupo Vetor Log",
-    texto: "Resumo da reunião pronto para revisão antes de enviar ao cliente",
-    prioridade: "Alta",
-    hora: "09:40",
-  },
-  {
-    id: 2,
-    fonte: "hubspot",
-    cliente: "Nortis Farma",
-    texto: "Negócio parado em \"Proposta enviada\" há 6 dias",
-    prioridade: "Média",
-    hora: "Ontem",
-  },
-  {
-    id: 3,
-    fonte: "whatsapp",
-    cliente: "Beatriz — Common Comercial",
-    texto: "Perguntou sobre desconto na renovação, ainda sem resposta",
-    prioridade: "Alta",
-    hora: "11:12",
-  },
-  {
-    id: 4,
-    fonte: "blip",
-    cliente: "Atendimento automático",
-    texto: "Conversa escalada para humano — cliente insatisfeito",
-    prioridade: "Alta",
-    hora: "10:55",
-  },
-  {
-    id: 5,
-    fonte: "reuniao",
-    cliente: "Foz Engenharia",
-    texto: "Follow-up da proposta vence amanhã",
-    prioridade: "Média",
-    hora: "—",
-  },
-];
+  .colunas { display: grid; grid-template-columns: 1fr 1fr 0.85fr; gap: 24px; margin-top: 20px; }
+  .campo { margin-bottom: 12px; }
+  .campo label { display: block; font-size: 11px; font-weight: 600; color: var(--navy); margin-bottom: 4px; }
+  .campo input, .campo textarea {
+    width: 100%; border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px;
+    font-size: 13px; font-family: inherit; background: var(--surface); color: var(--ink); resize: vertical;
+  }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .toggle-linha { display: flex; align-items: center; gap: 10px; background: var(--surface-alt); border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; cursor: pointer; }
+  .toggle-linha.ativo { background: var(--brand-soft); }
+  .toggle { width: 34px; height: 20px; border-radius: 999px; background: var(--border); position: relative; flex-shrink: 0; transition: background .15s; }
+  .toggle.ativo { background: var(--navy); }
+  .toggle .bola { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 999px; background: white; transition: transform .15s; }
+  .toggle.ativo .bola { transform: translateX(14px); }
+  .toggle-texto strong { display: block; font-size: 12px; color: var(--navy); }
+  .toggle-texto span { font-size: 11px; color: var(--ink-soft); }
 
-const fonteConfig = {
-  reuniao: { label: "Reunião", icon: Video, color: tokens.indigo, soft: tokens.indigoSoft },
-  hubspot: { label: "HubSpot", icon: Building2, color: tokens.brand, soft: tokens.brandSoft },
-  whatsapp: { label: "WhatsApp", icon: MessageCircle, color: "#3B7A57", soft: "#DCEFE2" },
-  blip: { label: "BLIP", icon: Bot, color: tokens.amber, soft: tokens.amberSoft },
-};
+  .passo { display: flex; align-items: flex-start; gap: 8px; padding: 6px 4px; cursor: pointer; font-size: 13px; }
+  .passo input { margin-top: 2px; }
+  .passo.feito { color: var(--ink-soft); text-decoration: line-through; }
 
-const PASTA_TRANSCRICOES_ID = "1rTqu1-yFH8JneSBBETwuYYV8ZSGsiaFb";
+  .erro { color: var(--red); font-size: 13px; margin: 10px 0; }
+  .aviso { color: var(--ink-soft); font-size: 12px; margin-top: 8px; }
+  .copiar { background: none; border: none; cursor: pointer; font-size: 11px; color: var(--navy-soft); display: inline-flex; align-items: center; gap: 4px; }
+  .copiar.ok { color: #2F6657; }
+</style>
+</head>
+<body>
 
-const statusArquivoConfig = {
-  naoAberto: { label: "Não aberto", color: tokens.inkSoft, soft: tokens.surfaceAlt },
-  carregando: { label: "Lendo transcrição...", color: tokens.amber, soft: tokens.amberSoft },
-  revisao: { label: "Aguardando revisão", color: tokens.indigo, soft: tokens.indigoSoft },
-  enviado: { label: "Enviado ao cliente", color: tokens.brand, soft: tokens.brandSoft },
-};
+  <div class="topo">
+    <h1>Malha — Reuniões transcritas</h1>
+    <div id="areaConta"></div>
+  </div>
 
-const integracoes = [
-  {
-    id: "hubspot",
-    nome: "HubSpot",
-    icon: Building2,
-    detalhe: "128 negócios sincronizados · última sincronização há 4 min",
-  },
-  {
-    id: "whatsapp",
-    nome: "WhatsApp Business",
-    icon: MessageCircle,
-    detalhe: "Número +55 11 4002-8922 · mensagens em tempo real",
-  },
-  {
-    id: "blip",
-    nome: "BLIP",
-    icon: Bot,
-    detalhe: "3 fluxos ativos · escalonamento automático para humano",
-  },
-];
+  <div class="gate" id="gate">
+    <p>Conecte sua conta Google para ler as transcrições da pasta do Drive.</p>
+    <button class="btn btn-primario" id="btnConectar">Conectar com Google Drive</button>
+    <p class="erro" id="erroConexao" style="display:none;"></p>
+  </div>
 
-// ---- Dados da aba "Links úteis" da planilha ----
+  <div class="app" id="app">
+    <div class="lista">
+      <h2>Reuniões transcritas</h2>
+      <p class="subtitulo">Lidas direto da pasta do Drive · últimos 30 dias</p>
+      <div id="statusLista" style="font-size:13px;color:var(--ink-soft);"></div>
+      <div id="listaArquivos"></div>
+    </div>
+    <div class="detalhe" id="detalhe">
+      <div class="vazio">Escolha um arquivo transcrito à esquerda para gerar o resumo comercial.</div>
+    </div>
+  </div>
 
-const linksInterno = [
-  { nome: "Admin Branco", url: "https://empresa.nibo.com.br/Admin/Users" },
-  { nome: "Assinatura Empresa", url: "https://admin-assinatura-empresa.nibo.com.br/home" },
-  { nome: "Clicksign", url: "https://app.clicksign.com/accounts/3289/dashboard" },
-  { nome: "Planilha isenção", url: "https://docs.google.com/spreadsheets/d/1eoskIfrXCLUYRANoAEvDOT0ftDz3NcQQc5jHcRZKsPE/edit" },
-  { nome: "Admin Preto", url: "https://manager.nibo.com.br/" },
-  { nome: "Relatório hub", url: "https://app.hubspot.com/reports-dashboard/1554114/view/8979633?entireCurrentUnit=true&rangeType=THIS_MONTH" },
-  { nome: "Digisac", url: "https://nibo.digisac.biz/" },
-  { nome: "Assinatura Contador", url: "https://admin-contador.nibo.com.br/app" },
-  { nome: "Comissionamento", url: "https://docs.google.com/spreadsheets/d/1GUcH6zKSJBHm0xwSgGjv0sPx50CgwnOOf-nQrpcx6WI/edit?gid=1002073424" },
-  { nome: "Gerador de Contrato", url: "https://contratos.nibo.com.br/" },
-  { nome: "Consulta CNPJ", url: "https://solucoes.receita.fazenda.gov.br/Servicos/cnpjreva/Cnpjreva_Solicitacao.asp" },
-  { nome: "Calculadora GF", url: "https://docs.google.com/spreadsheets/d/1EOIO5HsbCkdyXOLGJ4OFJ-OQ8TdjMGbJ23I2aAJNigY/edit?gid=1881860674" },
-  { nome: "Preços Whatsapp BPO", url: "https://docs.google.com/spreadsheets/d/1GsQWzTJr7lvKwMequmhnxE_t5QFygrH06XOQddXgbEw/edit?gid=0" },
-  { nome: "Forms para criação de negócios", url: "https://share.hsforms.com/1QX1i4LBfRwyzO1N42eKK9gxb5u" },
-  { nome: "Precificação Whatsapp BPO", url: "https://docs.google.com/spreadsheets/d/1GsQWzTJr7lvKwMequmhnxE_t5QFygrH06XOQddXgbEw/edit?gid=0" },
-  { nome: "Proposta Nibo BPO", url: "https://docs.google.com/presentation/d/1NwMe7dRROkU0uyZxu6uDvnunjifVf9a6xZQATX-mQAc/edit" },
-];
+<script>
+  // ------------------------------------------------------------------
+  // CONFIGURAÇÃO — preencha antes de publicar no GitHub Pages
+  // ------------------------------------------------------------------
+  const CONFIG = {
+    // Client ID OAuth (tipo "Web application") criado no Google Cloud Console.
+    CLIENT_ID: 'SEU_CLIENT_ID_AQUI.apps.googleusercontent.com',
+    // Chave do Gemini gerada em aistudio.google.com/apikey.
+    // IMPORTANTE: restrinja essa chave por domínio (HTTP referrer) no Google Cloud
+    // Console, apontando para a URL do seu GitHub Pages — veja o LEIA-ME.
+    GEMINI_API_KEY: 'SUA_CHAVE_GEMINI_AQUI',
+    PASTA_ID: '1rTqu1-yFH8JneSBBETwuYYV8ZSGsiaFb',
+    MODELO_GEMINI: 'gemini-3.5-flash-lite',
+  };
+  // ------------------------------------------------------------------
 
-const linksMetabase = [
-  { nome: "Id da empresa pelo CNPJ", url: "https://metabase.nibo.com.br/question/7577" },
-  { nome: "ID do escritório de BPO pelo e-mail do usuário", url: "https://metabase.nibo.com.br/question/12184-id-do-escritorio-bpo-a-partir-de-email-duplicado" },
-  { nome: "Id da empresa pelo código de barras", url: "https://metabase.nibo.com.br/question/10298-assinatura-gf-detalhes-de-boleto-do-cliente" },
-  { nome: "Produto associado ao usuário", url: "https://metabase.nibo.com.br/question/10443-consulta-produtos-associados-a-um-usuario" },
-  { nome: "Usuários do BPO pelo ID do escritório", url: "https://metabase.nibo.com.br/auth/login?redirect=%2Fquestion%2F10590-usuarios-bpo-por-id-do-escritorio-bpo" },
-  { nome: "Preço GF Contador", url: "https://metabase.nibo.com.br/question/9751-vendas-preco-gf-contador" },
-  { nome: "Preço GF paga pelo cliente", url: "https://metabase.nibo.com.br/question/9753-vendas-preco-gf-paga-pelo-cliente" },
-  { nome: "Erro na importação de outro sistema (Máquina de vendas)", url: "https://metabase.nibo.com.br/question/10006-verificar-possivel-erro-na-importacao-de-outro-sistema-maquina-de-vendas" },
-];
+  let tokenAcesso = null;
+  let arquivos = [];
+  let statusPorArquivo = {};
+  let selecionado = null;
+  let transcricaoAtual = null;
+  let resumoAtual = null;
+  let passosAtuais = [];
+  let enviado = false;
 
-const linksCliente = [
-  { nome: "Link Tree", url: "https://linktr.ee/nibogestaofinanceira" },
-  { nome: "Apresentação GF (NOVO)", url: "https://www.youtube.com/watch?v=f1bONoxC0Yo&feature=youtu.be" },
-  { nome: "Apresentação GF", url: "https://www.youtube.com/watch?v=omMVwul0AmA" },
-  { nome: "Apresentação Painel de BPO", url: "https://www.youtube.com/watch?v=zu3W9rW5LTo&feature=youtu.be" },
-  { nome: "Automação Contábil", url: "https://www.youtube.com/watch?v=GCljFrvHOXA" },
-  { nome: "Município homologado NFS-e (Emissão)", url: "https://www.nibo.com.br/municipios-homologados-para-emissao-de-nfs-e" },
-  { nome: "Município homologação NFS-e e NF-e (Consulta)", url: "https://www.nibo.com.br/municipios-homologados-para-consulta-de-nf" },
-  { nome: "Preços e Planos GF", url: "https://www.nibo.com.br/empresa/planos-e-precos" },
-  { nome: "BPO Express — 30 dias grátis", url: "https://bpoacademy.com.br/bpo-express-nibo/" },
-  { nome: "Inscrição Treinamento GF", url: "https://conteudo.nibo.com.br/treinamento-de-nibo-gestao-financeira" },
-  { nome: "Política de Comissionamento — Parcerias", url: "https://www.nibo.com.br/politica-de-comissionamento" },
-  { nome: "Termos de Uso GF", url: "https://www.nibo.com.br/termos-de-uso" },
-  { nome: "Documentação API", url: "https://developer.nibo.com.br/" },
-  { nome: "Nibo + Pluga", url: "https://pluga.co/ferramentas/asaas/integracao/nibo/" },
-  { nome: "Nibo + Zapier", url: "https://zapier.com/apps/nibo/integrations" },
-  { nome: "Como integrar GestãoDS", url: "https://www.youtube.com/watch?v=ULS7Eb4LO_A" },
-  { nome: "Teste Gratuito", url: "http://bit.ly/timegf-trial" },
-  { nome: "Grupo WhatsApp — GF", url: "https://chat.whatsapp.com/Cj2ZOL9W1FdDy3NnPQpp83" },
-  { nome: "Grupo WhatsApp — BPO", url: "https://chat.whatsapp.com/GFrXlrR8NEm1mcoGO2AHF4" },
-  { nome: "Indicação para Gestão DS", url: "https://lp.gestaods.com.br/clientes-nibo" },
-  { nome: "Central do Conhecimento", url: "https://conhecimento.nibo.com.br/artigos/gf/conhecendo-produto/" },
-  { nome: "Central de Ajuda — GF", url: "https://ajuda.nibo.com.br/pt-BR/collections/3804821-nibo-gestao-financeira" },
-  { nome: "Central de Ajuda — BPO", url: "https://ajuda.nibo.com.br/pt-BR/collections/5676762-nibo-bpo" },
-  { nome: "Segurança e tratamento de dados", url: "https://ajuda.nibo.com.br/pt-BR/articles/7983668-seguranca-e-tratamento-de-dados" },
-  { nome: "Integrar Nibo e PlayBPO", url: "https://suporte.sistemaplaybpo.com.br/hc/pt-br/articles/23855191451291" },
-  { nome: "Proposta Nibo BPO (apresentação)", url: "https://docs.google.com/presentation/d/1NxXGBGUqgUMrdqXm4Oqa84PbjrW0nZJGKWfNdStTCTo/edit" },
-  { nome: "Playlist Treinamento", url: "https://www.youtube.com/watch?v=Y8nRKgO89EM&feature=youtu.be" },
-  { nome: "Tutorial WhatsApp BPO", url: "https://youtu.be/Ypq1on3HKb4" },
-  { nome: "Emissão de boletos", url: "https://www.youtube.com/watch?v=YKraHTVR-MU" },
-  { nome: "Configurar NFS-e", url: "https://www.youtube.com/watch?v=a_yR3OrUUEI" },
-  { nome: "Controle de Cartão de Crédito", url: "https://www.loom.com/share/c429202dded74268bb0a8d0382145a5d" },
-  { nome: "Erros NFS-e", url: "https://consulta-de-erros-nfse-770225854424.us-west1.run.app/" },
-  { nome: "Caixa de entrada", url: "https://www.youtube.com/watch?v=YsACU7dY_6c" },
-  { nome: "Conciliador open finance", url: "https://www.youtube.com/watch?v=aXGW4ijGEf0" },
-];
-
-const cuponsGrupos = [
-  {
-    titulo: "Desconto em 6 meses",
-    cupons: [
-      { codigo: "T1ME10GF6", desconto: "10%" },
-      { codigo: "TIWE15GF6", desconto: "15%" },
-      { codigo: "TIM320GF6", desconto: "20%" },
-      { codigo: "7IM325G36", desconto: "25%" },
-      { codigo: "G3T1ME30GF6", desconto: "30%" },
-      { codigo: "G3TIWE356", desconto: "35%" },
-      { codigo: "GF71WE406", desconto: "40%" },
-    ],
-  },
-  {
-    titulo: "Desconto em 12 meses",
-    cupons: [
-      { codigo: "GF.10M31", desconto: "10%" },
-      { codigo: "GF.15MEI", desconto: "15%" },
-      { codigo: "GF20TIME", desconto: "20%" },
-      { codigo: "GF25TIME", desconto: "25%" },
-      { codigo: "M31GF50", desconto: "50%", obs: "Exclusivo para MEI" },
-    ],
-  },
-];
-
-const contatosCS = [
-  { nome: "Bianca Kim", telefone: "(11) 3777-5041", sala: "https://bit.ly/Nibo-Bianca-Kim", agendamento: "https://meetings.hubspot.com/bianca-kim1" },
-  { nome: "Maryana Alves", telefone: "(21) 97164-4210", sala: "http://bit.ly/Nibo-Maryana-Alves", agendamento: "https://meetings.hubspot.com/maryana-alves" },
-  { nome: "Vinícius Oliveira", telefone: "(11) 3777-6704", sala: null, agendamento: "https://meetings.hubspot.com/vinicius-oliveira11" },
-  { nome: "Carolini Cruz", telefone: "(11) 3777-5406", sala: null, agendamento: "https://meetings.hubspot.com/carolini-oliveira-da-cruz" },
-  { nome: "Nicholas Castro", telefone: "(11) 3777-7120", sala: "https://meet.google.com/mxf-gwju-xie", agendamento: "https://meetings.hubspot.com/nicholas-milan-de-castro-zanetti" },
-];
-
-const contatosWpp = [
-  { nome: "Davi Gato", telefone: "(11) 3777-8295" },
-  { nome: "Davi Gonçalves", telefone: "(11) 3777-2693" },
-  { nome: "Jéssica Gonçalves", telefone: "(11) 3777-0942" },
-  { nome: "Lorena", telefone: "(11) 3777-2714" },
-  { nome: "Luana Lima", telefone: "(11) 3777-9723" },
-  { nome: "Luana Botica", telefone: "(11) 3777-0963" },
-  { nome: "Lucas Natali", telefone: "(11) 3777-6509" },
-  { nome: "Luisa Lemos", telefone: "(11) 3777-0972" },
-  { nome: "Matheus Gomes", telefone: "(16) 98800-0304", obs: "linhas antigas: (11) 3777-9734 e (11) 3777-6872" },
-  { nome: "Time vendas GF", telefone: "(11) 3777-5029" },
-  { nome: "Alinne", telefone: "(11) 3777-1578" },
-  { nome: "Natalia", telefone: "(11) 3777-1359" },
-  { nome: "Lais Oliveira", telefone: "(11) 3777-1302" },
-  { nome: "Lais Nascimento", telefone: "(11) 3777-1803" },
-];
-
-function Toggle({ on, onClick }) {
-  return (
-    <button
-      onClick={onClick}
-      className="relative w-10 h-6 rounded-full transition-colors flex-shrink-0"
-      style={{ backgroundColor: on ? tokens.brand : tokens.border }}
-    >
-      <span
-        className="absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform"
-        style={{ transform: on ? "translateX(18px)" : "translateX(2px)" }}
-      />
-    </button>
-  );
-}
-
-const pendenciaSubItems = [
-  { id: "todos", label: "Todos" },
-  { id: "hubspot", label: "CRM" },
-  { id: "whatsapp", label: "Whatsapp" },
-  { id: "blip", label: "Blip" },
-  { id: "reunioes", label: "Reuniões transcritas" },
-];
-
-const sectionTitles = {
-  inicio: "Início",
-  todos: "Pendências · Todos",
-  hubspot: "Pendências · CRM",
-  whatsapp: "Pendências · Whatsapp",
-  blip: "Pendências · Blip",
-  reunioes: "Reuniões transcritas",
-  integracoes: "Integrações",
-  "apoio-interno": "Apoio de Vendas · Interno",
-  "apoio-metabase": "Apoio de Vendas · Metabase (Consultas)",
-  "apoio-cliente": "Apoio de Vendas · Envio para o cliente",
-  "apoio-cupons": "Apoio de Vendas · Cupons",
-  "apoio-sucesso": "Apoio de Vendas · Sucesso BPO",
-  "apoio-wpp": "Apoio de Vendas · Whatsapp Equipe",
-};
-
-const apoioSubItems = [
-  { id: "apoio-interno", label: "Interno" },
-  { id: "apoio-metabase", label: "Metabase (Consultas)" },
-  { id: "apoio-cliente", label: "Envio para o cliente" },
-  { id: "apoio-cupons", label: "Cupons" },
-  { id: "apoio-sucesso", label: "Sucesso BPO" },
-  { id: "apoio-wpp", label: "Whatsapp Equipe" },
-];
-
-function slugify(texto) {
-  return texto
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
-}
-
-function mesclarOrdem(salvo, links) {
-  const nomesAtuais = links.map((l) => l.nome);
-  const preservados = salvo.filter((n) => nomesAtuais.includes(n));
-  const novos = nomesAtuais.filter((n) => !preservados.includes(n));
-  return [...preservados, ...novos];
-}
-
-function ListaSimples({ title, subtitle, links }) {
-  const [busca, setBusca] = useState("");
-  const [ordem, setOrdem] = useState(() => links.map((l) => l.nome));
-  const [arrastando, setArrastando] = useState(null);
-  const [carregouOrdem, setCarregouOrdem] = useState(false);
-
-  const chaveStorage = `link-order:${slugify(title)}`;
-
-  useEffect(() => {
-    let cancelado = false;
-    async function carregar() {
-      try {
-        const resultado = await window.storage.get(chaveStorage);
-        if (!cancelado && resultado && resultado.value) {
-          const salvo = JSON.parse(resultado.value);
-          if (Array.isArray(salvo)) setOrdem(mesclarOrdem(salvo, links));
+  function iniciarLogin() {
+    const client = google.accounts.oauth2.initTokenClient({
+      client_id: CONFIG.CLIENT_ID,
+      scope: 'https://www.googleapis.com/auth/drive.readonly',
+      callback: function (resposta) {
+        if (resposta.error) {
+          mostrarErroConexao('Login recusado: ' + resposta.error);
+          return;
         }
-      } catch (e) {
-        // ainda não há ordem salva para esta lista — mantém a ordem padrão
-      } finally {
-        if (!cancelado) setCarregouOrdem(true);
-      }
-    }
-    carregar();
-    return () => {
-      cancelado = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  async function persistirOrdem(nova) {
-    try {
-      await window.storage.set(chaveStorage, JSON.stringify(nova));
-    } catch (e) {
-      // se falhar em salvar, a ordem continua funcionando nesta sessão
-    }
+        tokenAcesso = resposta.access_token;
+        document.getElementById('gate').style.display = 'none';
+        document.getElementById('app').classList.add('ativo');
+        document.getElementById('areaConta').innerHTML =
+          '<button class="btn btn-branco" onclick="location.reload()">Sair</button>';
+        carregarLista();
+      },
+    });
+    client.requestAccessToken();
   }
 
-  function soltarSobre(nomeAlvo) {
-    if (!arrastando || arrastando === nomeAlvo) return;
-    setOrdem((prev) => {
-      const semArrastado = prev.filter((n) => n !== arrastando);
-      const idxAlvo = semArrastado.indexOf(nomeAlvo);
-      const novo = [...semArrastado];
-      novo.splice(idxAlvo, 0, arrastando);
-      persistirOrdem(novo);
-      return novo;
+  function mostrarErroConexao(msg) {
+    const el = document.getElementById('erroConexao');
+    el.style.display = 'block';
+    el.textContent = msg;
+  }
+
+  document.getElementById('btnConectar').onclick = iniciarLogin;
+
+  // ---------------- Google Drive ----------------
+
+  async function listarArquivosRecentes() {
+    const limite = new Date();
+    limite.setDate(limite.getDate() - 30);
+    const limiteISO = limite.toISOString();
+
+    const q = "'" + CONFIG.PASTA_ID + "' in parents and trashed = false and modifiedTime > '" + limiteISO + "'";
+    const url = 'https://www.googleapis.com/drive/v3/files' +
+      '?q=' + encodeURIComponent(q) +
+      '&fields=' + encodeURIComponent('files(id,name,modifiedTime,mimeType)') +
+      '&orderBy=modifiedTime desc&pageSize=25';
+
+    const resp = await fetch(url, { headers: { Authorization: 'Bearer ' + tokenAcesso } });
+    if (!resp.ok) {
+      const corpo = await resp.text();
+      throw new Error('Erro ' + resp.status + ' do Google Drive: ' + corpo.slice(0, 200));
+    }
+    const dados = await resp.json();
+    return (dados.files || []).map(function (f) {
+      return {
+        id: f.id,
+        nome: f.name,
+        mimeType: f.mimeType,
+        modificadoTexto: new Date(f.modifiedTime).toLocaleDateString('pt-BR'),
+      };
     });
   }
 
-  const ordenados = ordem
-    .map((nome) => links.find((l) => l.nome === nome))
-    .filter(Boolean);
-
-  const filtrados = busca.trim()
-    ? ordenados.filter((l) => l.nome.toLowerCase().includes(busca.toLowerCase()))
-    : ordenados;
-
-  const podeArrastar = !busca.trim();
-
-  return (
-    <div className="w-full px-8 py-8">
-      <div className="flex items-end justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="font-display text-2xl" style={{ color: tokens.ink }}>
-            {title}
-          </h1>
-          <p className="mt-1 text-sm" style={{ color: tokens.inkSoft }}>
-            {subtitle} {podeArrastar && "Arraste os cards para reorganizar por prioridade."}
-          </p>
-        </div>
-
-        {links.length > 8 && (
-          <div className="relative w-56 flex-shrink-0">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: tokens.navySoft }} />
-            <input
-              value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-              placeholder="Buscar..."
-              className="w-full pl-8 pr-3 py-1.5 rounded-lg text-sm outline-none"
-              style={{ backgroundColor: tokens.surface, border: `1px solid ${tokens.border}`, color: tokens.ink }}
-            />
-          </div>
-        )}
-      </div>
-
-      {filtrados.length === 0 && (
-        <p className="text-sm py-6" style={{ color: tokens.inkSoft }}>
-          Nada encontrado para "{busca}".
-        </p>
-      )}
-
-      <div className="mt-5 grid gap-2.5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))" }}>
-        {filtrados.map((l) => (
-          <a
-            key={l.nome}
-            href={l.url}
-            target="_blank"
-            rel="noreferrer"
-            draggable={podeArrastar}
-            onDragStart={(e) => {
-              setArrastando(l.nome);
-              e.dataTransfer.effectAllowed = "move";
-            }}
-            onDragOver={(e) => {
-              if (podeArrastar) e.preventDefault();
-            }}
-            onDrop={(e) => {
-              e.preventDefault();
-              soltarSobre(l.nome);
-              setArrastando(null);
-            }}
-            onDragEnd={() => setArrastando(null)}
-            className="flex items-center gap-1.5 rounded-lg pl-1.5 pr-3.5 py-3 text-sm transition-colors group"
-            style={{
-              backgroundColor: tokens.surface,
-              border: `1px solid ${tokens.border}`,
-              color: tokens.ink,
-              opacity: arrastando === l.nome ? 0.4 : 1,
-              cursor: podeArrastar ? "grab" : "pointer",
-            }}
-          >
-            {podeArrastar && (
-              <GripVertical
-                size={13}
-                className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                style={{ color: tokens.navySoft }}
-              />
-            )}
-            <span className="truncate flex-1">{l.nome}</span>
-            <ExternalLink
-              size={13}
-              className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
-              style={{ color: tokens.navySoft }}
-            />
-          </a>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function CuponsPage() {
-  return (
-    <div className="w-full px-8 py-8">
-      <h1 className="font-display text-2xl" style={{ color: tokens.ink }}>
-        Cupons
-      </h1>
-      <p className="mt-1 text-sm" style={{ color: tokens.inkSoft }}>
-        Códigos de desconto prontos para passar ao cliente.
-      </p>
-
-      <div className="mt-5 flex flex-col gap-6">
-        {cuponsGrupos.map((grupo) => (
-          <div key={grupo.titulo}>
-            <p className="text-sm font-semibold mb-2.5" style={{ color: tokens.navy }}>
-              {grupo.titulo}
-            </p>
-            <div className="grid gap-2.5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))" }}>
-              {grupo.cupons.map((c) => (
-                <div
-                  key={c.codigo}
-                  className="flex items-center justify-between gap-2 rounded-lg px-3.5 py-3"
-                  style={{ backgroundColor: tokens.surface, border: `1px solid ${tokens.border}` }}
-                >
-                  <div className="min-w-0">
-                    <p className="font-mono text-sm truncate" style={{ color: tokens.ink }}>
-                      {c.codigo}
-                    </p>
-                    {c.obs && (
-                      <p className="text-xs mt-0.5" style={{ color: tokens.amber }}>
-                        {c.obs}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-1.5 flex-shrink-0">
-                    <span
-                      className="text-xs px-1.5 py-0.5 rounded-full"
-                      style={{ backgroundColor: tokens.brandSoft, color: tokens.brand }}
-                    >
-                      {c.desconto}
-                    </span>
-                    <CopyButton text={c.codigo} label="Copiar cupom" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function SucessoBpoPage() {
-  return (
-    <div className="w-full px-8 py-8">
-      <h1 className="font-display text-2xl" style={{ color: tokens.ink }}>
-        Sucesso BPO
-      </h1>
-      <p className="mt-1 text-sm" style={{ color: tokens.inkSoft }}>
-        Contato, sala e agendamento de cada CS.
-      </p>
-
-      <div className="mt-5 grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))" }}>
-        {contatosCS.map((c) => (
-          <div
-            key={c.nome}
-            className="rounded-lg px-4 py-3.5"
-            style={{ backgroundColor: tokens.surface, border: `1px solid ${tokens.border}` }}
-          >
-            <p className="text-sm font-semibold" style={{ color: tokens.ink }}>
-              {c.nome}
-            </p>
-            <p className="text-xs mt-1 flex items-center gap-1" style={{ color: tokens.inkSoft }}>
-              {c.telefone}
-              <CopyButton text={c.telefone} label="Copiar telefone" />
-            </p>
-            <div className="flex gap-3 mt-2 items-center">
-              {c.sala && (
-                <span className="flex items-center gap-1">
-                  <a href={c.sala} target="_blank" rel="noreferrer" className="text-xs font-medium" style={{ color: tokens.indigo }}>
-                    Sala
-                  </a>
-                  <CopyButton text={c.sala} label="Copiar link da sala" />
-                </span>
-              )}
-              {c.agendamento && (
-                <span className="flex items-center gap-1">
-                  <span className="text-xs font-medium" style={{ color: tokens.indigo }}>
-                    Link para agendamento
-                  </span>
-                  <CopyButton text={c.agendamento} label="Copiar link de agendamento" />
-                </span>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function WhatsappEquipePage() {
-  return (
-    <div className="w-full px-8 py-8">
-      <h1 className="font-display text-2xl" style={{ color: tokens.ink }}>
-        Whatsapp Equipe
-      </h1>
-      <p className="mt-1 text-sm" style={{ color: tokens.inkSoft }}>
-        Ramais do time, prontos para copiar.
-      </p>
-
-      <div className="mt-5 grid gap-2.5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))" }}>
-        {contatosWpp.map((c) => (
-          <div
-            key={c.nome}
-            className="flex items-center justify-between gap-2 rounded-lg px-3.5 py-3"
-            style={{ backgroundColor: tokens.surface, border: `1px solid ${tokens.border}` }}
-          >
-            <div className="min-w-0">
-              <p className="text-sm font-medium truncate" style={{ color: tokens.ink }}>
-                {c.nome}
-              </p>
-              <p className="text-xs mt-0.5" style={{ color: tokens.inkSoft }}>
-                {c.telefone}
-              </p>
-              {c.obs && (
-                <p className="text-xs mt-0.5" style={{ color: tokens.amber }}>
-                  {c.obs}
-                </p>
-              )}
-            </div>
-            <CopyButton text={c.telefone} label="Copiar número" />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function CopyButton({ text, label }) {
-  const [copiado, setCopiado] = useState(false);
-  const [falhou, setFalhou] = useState(false);
-
-  function copiarFallback() {
-    try {
-      const textarea = document.createElement("textarea");
-      textarea.value = text;
-      textarea.style.position = "fixed";
-      textarea.style.left = "-9999px";
-      textarea.style.top = "0";
-      document.body.appendChild(textarea);
-      textarea.focus();
-      textarea.select();
-      const ok = document.execCommand("copy");
-      document.body.removeChild(textarea);
-      return ok;
-    } catch (e) {
-      return false;
-    }
-  }
-
-  async function copiar(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    setFalhou(false);
-    let sucesso = false;
-
-    if (navigator.clipboard && navigator.clipboard.writeText && window.isSecureContext) {
-      try {
-        await navigator.clipboard.writeText(text);
-        sucesso = true;
-      } catch (err) {
-        sucesso = false;
-      }
-    }
-
-    if (!sucesso) {
-      sucesso = copiarFallback();
-    }
-
-    if (sucesso) {
-      setCopiado(true);
-      setTimeout(() => setCopiado(false), 1500);
+  async function lerConteudoArquivo(id, mimeType) {
+    let url;
+    if (mimeType === 'application/vnd.google-apps.document') {
+      url = 'https://www.googleapis.com/drive/v3/files/' + id + '/export?mimeType=text/plain';
     } else {
-      setFalhou(true);
-      setTimeout(() => setFalhou(false), 2500);
+      url = 'https://www.googleapis.com/drive/v3/files/' + id + '?alt=media';
     }
+    const resp = await fetch(url, { headers: { Authorization: 'Bearer ' + tokenAcesso } });
+    if (!resp.ok) {
+      const corpo = await resp.text();
+      throw new Error('Erro ' + resp.status + ' ao ler o arquivo: ' + corpo.slice(0, 200));
+    }
+    return resp.text();
   }
 
-  return (
-    <button
-      onClick={copiar}
-      title={falhou ? `Não foi possível copiar — copie manualmente: ${text}` : label || "Copiar"}
-      className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded transition-colors flex-shrink-0"
-      style={{
-        color: falhou ? tokens.red : copiado ? tokens.brand : tokens.navySoft,
-        backgroundColor: falhou ? tokens.redSoft : copiado ? tokens.brandSoft : "transparent",
-      }}
-    >
-      {falhou ? <AlertCircle size={12} /> : copiado ? <Check size={12} /> : <Copy size={12} />}
-      {falhou ? "Selecione manualmente" : copiado ? "Copiado" : ""}
-    </button>
-  );
-}
+  // ---------------- Gemini ----------------
 
-function formatarDataLabel(date) {
-  const hoje = new Date();
-  const amanha = new Date();
-  amanha.setDate(hoje.getDate() + 1);
-  const mesmoDiaLocal = (a, b) =>
-    a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  async function gerarResumoComercialAPI(transcricao) {
+    const prompt =
+      'Você é um analista comercial. Abaixo está a transcrição de uma reunião comercial de ' +
+      'vendas de um produto de Gestão Financeira / BPO financeiro (Nibo). Extraia as ' +
+      'informações comerciais discutidas e monte um resumo estruturado.\n\n' +
+      'Transcrição:\n"""\n' + transcricao + '\n"""\n\n' +
+      'Responda APENAS com um JSON no formato exato abaixo (sem markdown, sem texto fora do JSON):\n' +
+      '{\n' +
+      '  "resumoExecutivo": "resumo objetivo de 2 a 3 frases sobre a reunião",\n' +
+      '  "orcamento": {"tipo": "Gestão Financeira, BPO, ou Gestão Financeira + BPO, ou Não definido", ' +
+      '"mensalidade": "valor da mensalidade e para quantos clientes/CNPJs, ex: R$ 450 para até 10 clientes", ' +
+      '"qtdClientes": "quantidade de clientes ou CNPJs mencionada, ou Não mencionado"},\n' +
+      '  "isencaoMensalidade": {"temIsencao": true ou false, "detalhe": "explicação da isenção, ou Não mencionado"},\n' +
+      '  "taxaImplantacao": "valor e condições da taxa de implantação, ou Não mencionada",\n' +
+      '  "dataLimiteOrcamento": "data limite para o cliente decidir sobre o orçamento, ou Não mencionada",\n' +
+      '  "descontoCondicaoEspecial": "descreva qualquer desconto, gestão financeira gratuita, ou funcionalidade ' +
+      'do plano premium incluída no plano plus, ou Nenhuma condição especial",\n' +
+      '  "mensagemCliente": "mensagem pronta para enviar ao cliente pelo WhatsApp, seguindo EXATAMENTE este ' +
+      'modelo:\\n\\nFormalizando nossa proposta de [Nibo BPO ou Gestão Financeira] para [X empresas/CNPJs] com ' +
+      'fechamento até o dia [data]:\\n\\n• [condição exclusiva — isenção de mensalidade, só se foi oferecida]\\n' +
+      '• Taxa de implantação de R$ [valor], dividido em 3x sem juros [só se a taxa foi mencionada]\\n' +
+      '• Gestão financeira gratuita [só se foi oferecida]\\n' +
+      '• Mensalidade de R$ [valor] para [X] clientes, no plano [Plus ou Premium] [se não ficou definido qual ' +
+      'plano, informe os dois valores]\\n\\nOmita qualquer marcador cujo dado não tenha sido mencionado na ' +
+      'reunião. Tom cordial e comercial, pronto para colar no WhatsApp.",\n' +
+      '  "proximosPassos": ["passo objetivo e curto 1", "passo objetivo e curto 2"]\n' +
+      '}\n' +
+      'Use exatamente os valores default indicados (ex: "Não mencionado") quando a informação não aparecer ' +
+      'na transcrição — não invente dados.';
 
-  if (mesmoDiaLocal(date, hoje)) return "Hoje";
-  if (mesmoDiaLocal(date, amanha)) return "Amanhã";
-  return date.toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "short" });
-}
-
-function paraInputDate(date) {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-}
-
-function getSemana(date) {
-  const dia = date.getDay();
-  const inicioSemana = new Date(date);
-  inicioSemana.setDate(date.getDate() - dia);
-  return Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(inicioSemana);
-    d.setDate(inicioSemana.getDate() + i);
-    return d;
-  });
-}
-
-const diasAbrev = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
-
-function mesmoDia(a, b) {
-  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-}
-
-function NovaReuniaoModal({ aberto, onFechar, dataInicial, onCriar, criando, erro }) {
-  const [titulo, setTitulo] = useState("");
-  const [data, setData] = useState(paraInputDate(dataInicial));
-  const [inicio, setInicio] = useState("");
-  const [fim, setFim] = useState("");
-  const [emails, setEmails] = useState("");
-  const [criarMeet, setCriarMeet] = useState(true);
-
-  useEffect(() => {
-    if (aberto) {
-      setTitulo("");
-      setData(paraInputDate(dataInicial));
-      setInicio("");
-      setFim("");
-      setEmails("");
-      setCriarMeet(true);
-    }
-  }, [aberto, dataInicial]);
-
-  if (!aberto) return null;
-
-  function salvar() {
-    if (!titulo.trim() || !data || !inicio) return;
-    onCriar({ titulo, data, inicio, fim, emails, criarMeet });
-  }
-
-  return (
-    <div
-      className="fixed inset-0 flex items-center justify-center z-50 p-4"
-      style={{ backgroundColor: "rgba(18,40,91,0.35)" }}
-      onClick={onFechar}
-    >
-      <div
-        className="w-full max-w-sm rounded-lg p-6 font-body"
-        style={{ backgroundColor: tokens.surface }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between mb-5">
-          <h3 className="font-display text-xl" style={{ color: tokens.navy }}>
-            Nova Reunião
-          </h3>
-          <button onClick={onFechar} style={{ color: tokens.navySoft }}>
-            <X size={18} />
-          </button>
-        </div>
-
-        <div className="flex flex-col gap-4">
-          <div>
-            <label className="text-xs font-semibold block mb-1.5" style={{ color: tokens.navy }}>
-              Título:
-            </label>
-            <input
-              value={titulo}
-              onChange={(e) => setTitulo(e.target.value)}
-              placeholder="Ex: Apresentação Comercial"
-              className="w-full text-sm px-3 py-2 rounded-lg outline-none"
-              style={{ border: `1px solid ${tokens.border}`, color: tokens.ink }}
-            />
-          </div>
-
-          <div>
-            <label className="text-xs font-semibold block mb-1.5" style={{ color: tokens.navy }}>
-              Data:
-            </label>
-            <input
-              type="date"
-              value={data}
-              onChange={(e) => setData(e.target.value)}
-              className="w-full text-sm px-3 py-2 rounded-lg outline-none"
-              style={{ border: `1px solid ${tokens.border}`, color: tokens.ink }}
-            />
-          </div>
-
-          <div className="flex gap-3">
-            <div className="flex-1">
-              <label className="text-xs font-semibold block mb-1.5" style={{ color: tokens.navy }}>
-                Início:
-              </label>
-              <input
-                type="time"
-                value={inicio}
-                onChange={(e) => setInicio(e.target.value)}
-                className="w-full text-sm px-3 py-2 rounded-lg outline-none"
-                style={{ border: `1px solid ${tokens.border}`, color: tokens.ink }}
-              />
-            </div>
-            <div className="flex-1">
-              <label className="text-xs font-semibold block mb-1.5" style={{ color: tokens.navy }}>
-                Fim:
-              </label>
-              <input
-                type="time"
-                value={fim}
-                onChange={(e) => setFim(e.target.value)}
-                className="w-full text-sm px-3 py-2 rounded-lg outline-none"
-                style={{ border: `1px solid ${tokens.border}`, color: tokens.ink }}
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="text-xs font-semibold block mb-1.5" style={{ color: tokens.navy }}>
-              E-mails Convidados (separados por vírgula):
-            </label>
-            <input
-              value={emails}
-              onChange={(e) => setEmails(e.target.value)}
-              placeholder="cliente@email.com"
-              className="w-full text-sm px-3 py-2 rounded-lg outline-none"
-              style={{ border: `1px solid ${tokens.border}`, color: tokens.ink }}
-            />
-          </div>
-
-          <button
-            onClick={() => setCriarMeet((v) => !v)}
-            className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left"
-            style={{ backgroundColor: criarMeet ? tokens.brandSoft : tokens.surfaceAlt }}
-          >
-            <div
-              className="w-9 h-5 rounded-full relative flex-shrink-0 transition-colors"
-              style={{ backgroundColor: criarMeet ? tokens.brand : tokens.border }}
-            >
-              <span
-                className="absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform"
-                style={{ transform: criarMeet ? "translateX(17px)" : "translateX(2px)" }}
-              />
-            </div>
-            <div>
-              <p className="text-xs font-semibold flex items-center gap-1.5" style={{ color: tokens.navy }}>
-                <VideoIcon size={13} />
-                Criar link do Google Meet
-              </p>
-              <p className="text-xs mt-0.5" style={{ color: tokens.inkSoft }}>
-                Gera uma sala de videochamada e inclui no convite, para o cliente entrar.
-              </p>
-            </div>
-          </button>
-
-          {erro && (
-            <p className="text-xs" style={{ color: tokens.red }}>
-              {erro}
-            </p>
-          )}
-        </div>
-
-        <div className="flex gap-2.5 mt-6">
-          <button
-            onClick={onFechar}
-            className="flex-1 text-sm font-medium py-2.5 rounded-lg"
-            style={{ backgroundColor: tokens.brandSoft, color: tokens.navy }}
-          >
-            Cancelar
-          </button>
-          <button
-            onClick={salvar}
-            disabled={criando || !titulo.trim() || !inicio}
-            className="flex-1 text-sm font-medium py-2.5 rounded-lg text-white"
-            style={{ backgroundColor: tokens.navy, opacity: criando ? 0.7 : 1 }}
-          >
-            {criando ? "Salvando..." : "Salvar na Agenda"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function GoogleAgendaCard() {
-  const [dataSelecionada, setDataSelecionada] = useState(new Date());
-  const [eventos, setEventos] = useState(null);
-  const [carregando, setCarregando] = useState(false);
-  const [erro, setErro] = useState(null);
-  const [modalAberto, setModalAberto] = useState(false);
-  const [criando, setCriando] = useState(false);
-  const [erroModal, setErroModal] = useState(null);
-  const [mensagem, setMensagem] = useState(null);
-
-  async function chamarClaude(prompt) {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+    const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + CONFIG.MODELO_GEMINI + ':generateContent';
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': CONFIG.GEMINI_API_KEY },
       body: JSON.stringify({
-        model: "claude-sonnet-4-6",
-        max_tokens: 1000,
-        messages: [{ role: "user", content: prompt }],
-        mcp_servers: [
-          { type: "url", url: "https://calendarmcp.googleapis.com/mcp/v1", name: "google-calendar" },
-        ],
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { responseMimeType: 'application/json' },
       }),
     });
-    if (!response.ok) throw new Error("Falha ao conectar com a Google Agenda");
-    return response.json();
+    if (!resp.ok) {
+      const corpo = await resp.text();
+      throw new Error('Erro ' + resp.status + ' do Gemini: ' + corpo.slice(0, 200));
+    }
+    const dados = await resp.json();
+    const texto = dados.candidates && dados.candidates[0] && dados.candidates[0].content.parts[0].text;
+    if (!texto) throw new Error('O Gemini não retornou conteúdo.');
+    return JSON.parse(texto);
   }
 
-  function extrairTexto(data) {
-    return (data.content || [])
-      .filter((b) => b.type === "text")
-      .map((b) => b.text)
-      .join("\n")
-      .replace(/```json|```/g, "")
-      .trim();
-  }
+  // ---------------- UI ----------------
 
-  async function carregarAgenda(data) {
-    setCarregando(true);
-    setErro(null);
-    try {
-      const dataFmt = data.toLocaleDateString("pt-BR", {
-        weekday: "long",
-        day: "2-digit",
-        month: "long",
-        year: "numeric",
+  function carregarLista() {
+    document.getElementById('statusLista').textContent = 'Lendo a pasta do Drive...';
+    listarArquivosRecentes()
+      .then(function (lista) {
+        arquivos = lista;
+        document.getElementById('statusLista').textContent =
+          lista.length === 0 ? 'Nenhum arquivo modificado nos últimos 30 dias.' : '';
+        renderizarLista();
+      })
+      .catch(function (erro) {
+        document.getElementById('statusLista').innerHTML =
+          '<span style="color:var(--red)">' + erro.message + '</span>';
       });
-      const resposta = await chamarClaude(
-        `Considere a data ${dataFmt} (${paraInputDate(data)}). Liste meus compromissos NESSA data na minha Google Agenda principal, em ordem cronológica. Responda APENAS com um array JSON, sem nenhum texto antes ou depois, no formato [{"inicio":"09:00","fim":"09:30","titulo":"...","link":"..."}]. Use link vazio ("") quando não houver videochamada. Se não houver nenhum compromisso nessa data, responda [].`
-      );
-      const texto = extrairTexto(resposta);
-      const parsed = JSON.parse(texto);
-      setEventos(Array.isArray(parsed) ? parsed : []);
-    } catch (e) {
-      setErro("Não consegui carregar sua Google Agenda agora. Verifique se ela está conectada em Configurações.");
-      setEventos(null);
-    } finally {
-      setCarregando(false);
-    }
   }
 
-  async function criarReuniao({ titulo, data, inicio, fim, emails, criarMeet }) {
-    setCriando(true);
-    setErroModal(null);
-    try {
-      const dataObj = new Date(...data.split("-").map((n, i) => (i === 1 ? Number(n) - 1 : Number(n))));
-      const dataFmt = dataObj.toLocaleDateString("pt-BR", {
-        weekday: "long",
-        day: "2-digit",
-        month: "long",
-        year: "numeric",
-      });
-      const listaEmails = emails
-        .split(",")
-        .map((e) => e.trim())
-        .filter(Boolean);
-
-      const prompt = `Crie um evento na minha Google Agenda principal com estes dados exatos:
-- Título: ${titulo}
-- Data: ${dataFmt} (${data})
-- Início: ${inicio}
-- Fim: ${fim || "uma hora depois do início"}
-${listaEmails.length ? `- Convidados: ${listaEmails.join(", ")}` : "- Sem convidados além de mim"}
-${criarMeet ? "- Inclua uma videochamada do Google Meet no evento, para os convidados entrarem." : "- Não é necessário criar videochamada."}
-Depois de criar, responda APENAS com um JSON, sem texto antes ou depois, no formato {"criado":true,"titulo":"...","inicio":"...","meetLink":"..."} (meetLink vazio se não foi criado) ou, se não conseguir criar, {"criado":false,"motivo":"..."}.`;
-
-      const resposta = await chamarClaude(prompt);
-      const texto = extrairTexto(resposta);
-      const parsed = JSON.parse(texto);
-
-      if (parsed.criado) {
-        setMensagem({
-          ok: true,
-          texto: `Reunião "${parsed.titulo}" salva às ${parsed.inicio}${
-            parsed.meetLink ? " — link do Meet incluído no convite" : ""
-          }.`,
-        });
-        setModalAberto(false);
-        if (mesmoDia(dataObj, dataSelecionada)) {
-          carregarAgenda(dataSelecionada);
-        } else {
-          setDataSelecionada(dataObj);
-        }
-      } else {
-        setErroModal(parsed.motivo || "Não consegui criar a reunião agora.");
-      }
-    } catch (e) {
-      setErroModal("Não consegui falar com a Google Agenda agora.");
-    } finally {
-      setCriando(false);
-    }
-  }
-
-  useEffect(() => {
-    carregarAgenda(dataSelecionada);
-  }, [dataSelecionada]);
-
-  const semana = getSemana(dataSelecionada);
-  const hoje = new Date();
-
-  return (
-    <div className="rounded-lg overflow-hidden col-span-2" style={{ border: `1px solid ${tokens.border}` }}>
-      {/* Cabeçalho */}
-      <div className="flex items-center justify-between px-5 py-4" style={{ backgroundColor: tokens.navy }}>
-        <div className="flex items-center gap-2">
-          <CalendarDays size={16} color="white" />
-          <p className="text-sm font-semibold text-white">Google Agenda ({formatarDataLabel(dataSelecionada)})</p>
-        </div>
-        <button
-          onClick={() => setModalAberto(true)}
-          className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-md"
-          style={{ backgroundColor: "white", color: tokens.navy }}
-        >
-          <Plus size={13} />
-          Agendar
-        </button>
-      </div>
-
-      <div className="p-5" style={{ backgroundColor: tokens.surface }}>
-        {/* Tira de dias da semana */}
-        <div className="grid grid-cols-7 gap-1 mb-5">
-          {semana.map((d) => {
-            const selecionado = mesmoDia(d, dataSelecionada);
-            return (
-              <button key={d.toISOString()} onClick={() => setDataSelecionada(d)} className="flex flex-col items-center gap-1.5 py-1">
-                <span className="text-xs font-medium" style={{ color: tokens.amber }}>
-                  {diasAbrev[d.getDay()]}
-                </span>
-                <span
-                  className="w-7 h-7 flex items-center justify-center rounded-full text-xs font-semibold"
-                  style={{
-                    backgroundColor: selecionado ? tokens.navy : "transparent",
-                    color: selecionado ? "white" : mesmoDia(d, hoje) ? tokens.navy : tokens.inkSoft,
-                  }}
-                >
-                  {d.getDate()}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Lista de compromissos */}
-        <div className="flex items-center gap-2 mb-2">
-          <button onClick={() => carregarAgenda(dataSelecionada)} title="Atualizar" style={{ color: tokens.navySoft }}>
-            <RefreshCw size={13} style={{ animation: carregando ? "spin 1s linear infinite" : "none" }} />
-          </button>
-          <span className="text-xs" style={{ color: tokens.inkSoft }}>
-            {carregando ? "Atualizando..." : "Atualizado agora"}
-          </span>
-        </div>
-
-        {carregando && eventos === null && (
-          <p className="text-sm py-4" style={{ color: tokens.inkSoft }}>
-            Carregando compromissos...
-          </p>
-        )}
-        {erro && (
-          <p className="text-sm py-4" style={{ color: tokens.red }}>
-            {erro}
-          </p>
-        )}
-        {eventos && eventos.length === 0 && !erro && (
-          <p className="text-sm py-4" style={{ color: tokens.inkSoft }}>
-            Nenhum compromisso em {formatarDataLabel(dataSelecionada).toLowerCase()} — dia livre.
-          </p>
-        )}
-        {eventos && eventos.length > 0 && (
-          <div className="flex flex-col gap-2.5">
-            {eventos.map((e, i) => (
-              <div key={i} className="flex items-stretch gap-3">
-                <div className="w-10 text-right flex-shrink-0 pt-1.5">
-                  <p className="text-xs font-semibold" style={{ color: tokens.navy }}>
-                    {e.inicio}
-                  </p>
-                  <p className="text-xs" style={{ color: tokens.amber }}>
-                    {e.fim}
-                  </p>
-                </div>
-                <div className="w-0.5 rounded-full flex-shrink-0" style={{ backgroundColor: tokens.navy }} />
-                <div
-                  className="flex-1 rounded-md px-4 py-2.5 flex items-center justify-between gap-2"
-                  style={{ border: `1px solid ${tokens.border}` }}
-                >
-                  <span className="text-sm font-semibold" style={{ color: tokens.navy }}>
-                    {e.titulo}
-                  </span>
-                  {e.link && (
-                    <a
-                      href={e.link}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-xs font-medium flex-shrink-0"
-                      style={{ color: tokens.brand }}
-                    >
-                      Entrar
-                    </a>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {mensagem && (
-          <p className="text-xs mt-3" style={{ color: mensagem.ok ? tokens.brand : tokens.red }}>
-            {mensagem.texto}
-          </p>
-        )}
-      </div>
-
-      <NovaReuniaoModal
-        aberto={modalAberto}
-        onFechar={() => setModalAberto(false)}
-        dataInicial={dataSelecionada}
-        onCriar={criarReuniao}
-        criando={criando}
-        erro={erroModal}
-      />
-    </div>
-  );
-}
-
-async function chamarClaudeAPI(prompt, mcpServers = [], maxTokens = 4000) {
-  const body = {
-    model: "claude-sonnet-4-6",
-    max_tokens: maxTokens,
-    messages: [{ role: "user", content: prompt }],
-  };
-  if (mcpServers.length) body.mcp_servers = mcpServers;
-
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  if (!response.ok) {
-    let detalhe = "";
-    try {
-      const errJson = await response.json();
-      detalhe = errJson?.error?.message || JSON.stringify(errJson);
-    } catch (e2) {
-      detalhe = await response.text().catch(() => "");
-    }
-    throw new Error(`Erro ${response.status}${detalhe ? ": " + detalhe : ""}`);
-  }
-  return response.json();
-}
-
-// Se a resposta foi cortada no meio de um array JSON (limite de tokens), aproveita os
-// objetos que vieram completos em vez de descartar tudo.
-function repararArrayJSON(texto) {
-  const s = texto.trim();
-  if (!s.startsWith("[")) return null;
-  let depth = 0;
-  let ultimoFechamento = -1;
-  let dentroString = false;
-  let escapando = false;
-  for (let i = 0; i < s.length; i++) {
-    const ch = s[i];
-    if (escapando) {
-      escapando = false;
-      continue;
-    }
-    if (ch === "\\") {
-      escapando = true;
-      continue;
-    }
-    if (ch === '"') {
-      dentroString = !dentroString;
-      continue;
-    }
-    if (dentroString) continue;
-    if (ch === "{") depth++;
-    if (ch === "}") {
-      depth--;
-      if (depth === 0) ultimoFechamento = i;
-    }
-  }
-  if (ultimoFechamento === -1) return null;
-  const reparado = s.slice(0, ultimoFechamento + 1) + "]";
-  try {
-    return JSON.parse(reparado);
-  } catch (e) {
-    return null;
-  }
-}
-
-function extrairTextoResposta(data) {
-  return (data.content || [])
-    .filter((b) => b.type === "text")
-    .map((b) => b.text)
-    .join("\n")
-    .replace(/```json|```/g, "")
-    .trim();
-}
-
-const DRIVE_MCP = { type: "url", url: "https://drivemcp.googleapis.com/mcp/v1", name: "google-drive" };
-
-function ResumoField({ label, children }) {
-  return (
-    <div>
-      <label className="text-xs font-semibold block mb-1" style={{ color: tokens.navy }}>
-        {label}
-      </label>
-      {children}
-    </div>
-  );
-}
-
-function inputStyle() {
-  return {
-    border: `1px solid ${tokens.border}`,
-    color: tokens.ink,
-    backgroundColor: tokens.surface,
-  };
-}
-
-function ReunioesTranscritas() {
-  const [arquivos, setArquivos] = useState(null);
-  const [carregandoArquivos, setCarregandoArquivos] = useState(false);
-  const [erroArquivos, setErroArquivos] = useState(null);
-
-  const [selecionado, setSelecionado] = useState(null);
-  const [transcricao, setTranscricao] = useState(null);
-  const [carregandoTranscricao, setCarregandoTranscricao] = useState(false);
-  const [erroTranscricao, setErroTranscricao] = useState(null);
-
-  const [resumo, setResumo] = useState(null);
-  const [gerandoResumo, setGerandoResumo] = useState(false);
-  const [erroResumo, setErroResumo] = useState(null);
-
-  const [passos, setPassos] = useState([]);
-  const [enviado, setEnviado] = useState(false);
-  const [statusMap, setStatusMap] = useState({});
-
-  const [criandoTarefas, setCriandoTarefas] = useState(false);
-  const [tarefasCriadas, setTarefasCriadas] = useState(false);
-  const [mensagemTarefas, setMensagemTarefas] = useState(null);
-
-  function marcarStatus(id, status) {
-    setStatusMap((prev) => ({ ...prev, [id]: status }));
-  }
-
-  async function listarArquivos() {
-    setCarregandoArquivos(true);
-    setErroArquivos(null);
-    let respostaBruta = "";
-    try {
-      const dataLimite = new Date();
-      dataLimite.setDate(dataLimite.getDate() - 30);
-      const dataLimiteISO = dataLimite.toISOString().split(".")[0];
-
-      const resposta = await chamarClaudeAPI(
-        `Use a ferramenta do Google Drive para pesquisar os arquivos que estão diretamente dentro da pasta com ID "${PASTA_TRANSCRICOES_ID}", modificados a partir de ${dataLimiteISO} (últimos 30 dias) — por exemplo, pesquisando por algo equivalente a '${PASTA_TRANSCRICOES_ID}' in parents and modifiedTime > '${dataLimiteISO}' (não entre em subpastas, não inclua arquivos mais antigos que essa data). Liste no máximo os 25 arquivos mais recentes. Para cada arquivo encontrado, retorne o id, o nome (truncada em 60 caracteres se for muito longa) e a data da última modificação. Responda APENAS com um array JSON compacto, sem espaços desnecessários, sem texto antes ou depois, no formato [{"id":"...","nome":"...","modificado":"dd/mm/aaaa"}]. Se a pasta estiver vazia ou não houver arquivos nesse período, responda []. Se não conseguir acessar a pasta (permissão, pasta não encontrada, etc.), responda APENAS com {"erro":"motivo exato retornado pela ferramenta"}.`,
-        [DRIVE_MCP],
-        8000
-      );
-      respostaBruta = extrairTextoResposta(resposta);
-      let parsed;
-      let incompleta = false;
-      try {
-        parsed = JSON.parse(respostaBruta);
-      } catch (parseErr) {
-        parsed = repararArrayJSON(respostaBruta);
-        incompleta = true;
-        if (parsed === null) throw parseErr;
-      }
-      if (parsed && !Array.isArray(parsed) && parsed.erro) {
-        setErroArquivos(`O Google Drive respondeu: "${parsed.erro}"`);
-        setArquivos([]);
-      } else {
-        setArquivos(Array.isArray(parsed) ? parsed : []);
-        if (incompleta) {
-          setErroArquivos("A lista pode estar incompleta (a pasta tem muitos arquivos) — mostrando os que couberam.");
-        }
-      }
-    } catch (e) {
-      const detalhe = respostaBruta
-        ? `Resposta recebida: "${respostaBruta.slice(0, 220)}"`
-        : e.message || "Verifique se o Google Drive está conectado.";
-      setErroArquivos(`Não consegui acessar a pasta do Drive agora. ${detalhe}`);
-      setArquivos([]);
-    } finally {
-      setCarregandoArquivos(false);
-    }
-  }
-
-  useEffect(() => {
-    listarArquivos();
-  }, []);
-
-  async function abrirArquivo(arquivo) {
-    setSelecionado(arquivo);
-    setTranscricao(null);
-    setResumo(null);
-    setPassos([]);
-    setEnviado(false);
-    setTarefasCriadas(false);
-    setMensagemTarefas(null);
-    setErroTranscricao(null);
-    setErroResumo(null);
-    setCarregandoTranscricao(true);
-    marcarStatus(arquivo.id, "carregando");
-    try {
-      const resposta = await chamarClaudeAPI(
-        `Leia o conteúdo do arquivo do Google Drive com ID "${arquivo.id}" — é a transcrição de uma reunião comercial. Responda APENAS com o texto integral da transcrição, sem comentários, introduções ou markdown. Se não conseguir ler o arquivo, responda exatamente no formato: ERRO: motivo exato do problema.`,
-        [DRIVE_MCP]
-      );
-      const texto = extrairTextoResposta(resposta);
-      if (!texto || texto.startsWith("ERRO")) {
-        setErroTranscricao(
-          texto.startsWith("ERRO")
-            ? `Não consegui ler esse arquivo. ${texto.replace(/^ERRO:?\s*/, "")}`
-            : "Não consegui ler esse arquivo. Confirme se ele é um documento de texto com a transcrição."
-        );
-        marcarStatus(arquivo.id, "naoAberto");
-      } else {
-        setTranscricao(texto);
-        marcarStatus(arquivo.id, "revisao");
-      }
-    } catch (e) {
-      setErroTranscricao(`Não consegui acessar o Google Drive agora. ${e.message || ""}`);
-      marcarStatus(arquivo.id, "naoAberto");
-    } finally {
-      setCarregandoTranscricao(false);
-    }
-  }
-
-  async function gerarResumoComercial() {
-    if (!transcricao) return;
-    setGerandoResumo(true);
-    setErroResumo(null);
-    try {
-      const prompt = `Você é um analista comercial. Abaixo está a transcrição de uma reunião comercial de vendas de um produto de Gestão Financeira / BPO financeiro (Nibo). Extraia as informações comerciais discutidas e monte um resumo estruturado.
-
-Transcrição:
-"""
-${transcricao}
-"""
-
-Responda APENAS com um JSON (sem texto antes ou depois, sem markdown) no formato exato:
-{
-  "resumoExecutivo": "resumo objetivo de 2 a 3 frases sobre a reunião",
-  "orcamento": {"tipo": "Gestão Financeira, BPO, ou Gestão Financeira + BPO, ou Não definido", "mensalidade": "valor da mensalidade e para quantos clientes/CNPJs, ex: R$ 450 para até 10 clientes", "qtdClientes": "quantidade de clientes ou CNPJs mencionada, ou Não mencionado"},
-  "isencaoMensalidade": {"temIsencao": true ou false, "detalhe": "explicação da isenção, ou Não mencionado"},
-  "taxaImplantacao": "valor e condições da taxa de implantação, ou Não mencionada",
-  "dataLimiteOrcamento": "data limite para o cliente decidir sobre o orçamento, ou Não mencionada",
-  "descontoCondicaoEspecial": "descreva qualquer desconto, gestão financeira gratuita, ou funcionalidade do plano premium incluída no plano plus, ou Nenhuma condição especial",
-  "mensagemCliente": "mensagem pronta para enviar ao cliente pelo WhatsApp, seguindo EXATAMENTE este modelo:\\n\\nFormalizando nossa proposta de [Nibo BPO ou Gestão Financeira] para [X empresas/CNPJs] com fechamento até o dia [data]:\\n\\n• [condição exclusiva — isenção de mensalidade, só se foi oferecida na reunião]\\n• Taxa de implantação de R$ [valor], dividido em 3x sem juros [só incluir se a taxa foi mencionada]\\n• Gestão financeira gratuita [só incluir se foi oferecida]\\n• Mensalidade de R$ [valor] para [X] clientes, no plano [Plus ou Premium] [se não ficou definido qual plano, informe os dois valores]\\n\\nOmita qualquer marcador cujo dado não tenha sido mencionado na reunião — não force os 4 itens se algum não existir. Tom cordial e comercial, pronto para colar no WhatsApp.",
-  "proximosPassos": ["passo objetivo e curto 1", "passo objetivo e curto 2"]
-}
-Use exatamente os valores default indicados (ex: "Não mencionado") quando a informação não aparecer na transcrição — não invente dados.`;
-
-      const resposta = await chamarClaudeAPI(prompt);
-      const texto = extrairTextoResposta(resposta);
-      const parsed = JSON.parse(texto);
-      setResumo(parsed);
-      setPassos((parsed.proximosPassos || []).map((texto, i) => ({ id: i, texto, feito: false })));
-    } catch (e) {
-      setErroResumo("Não consegui extrair os dados comerciais dessa transcrição agora. Tente novamente.");
-    } finally {
-      setGerandoResumo(false);
-    }
-  }
-
-  function atualizarCampo(caminho, valor) {
-    setResumo((prev) => {
-      const novo = { ...prev };
-      if (caminho.length === 1) {
-        novo[caminho[0]] = valor;
-      } else {
-        novo[caminho[0]] = { ...novo[caminho[0]], [caminho[1]]: valor };
-      }
-      return novo;
+  function renderizarLista() {
+    const container = document.getElementById('listaArquivos');
+    container.innerHTML = '';
+    arquivos.forEach(function (a) {
+      const status = statusPorArquivo[a.id] || 'naoAberto';
+      const label = { naoAberto: 'Não aberto', carregando: 'Lendo transcrição...', revisao: 'Aguardando revisão', enviado: 'Enviado ao cliente' }[status];
+      const btn = document.createElement('button');
+      btn.className = 'arquivo' + (selecionado && selecionado.id === a.id ? ' ativo' : '');
+      btn.innerHTML =
+        '<div class="nome">' + escaparHtml(a.nome) + '</div>' +
+        '<div class="meta">Modificado em ' + a.modificadoTexto + '</div>' +
+        '<span class="badge ' + status + '">' + label + '</span>';
+      btn.onclick = function () { abrirArquivo(a); };
+      container.appendChild(btn);
     });
   }
 
-  function toggleFeito(id) {
-    setPassos((prev) => prev.map((p) => (p.id === id ? { ...p, feito: !p.feito } : p)));
+  function escaparHtml(texto) {
+    const div = document.createElement('div');
+    div.textContent = texto;
+    return div.innerHTML;
+  }
+
+  function abrirArquivo(arquivo) {
+    selecionado = arquivo;
+    transcricaoAtual = null;
+    resumoAtual = null;
+    passosAtuais = [];
+    enviado = false;
+    statusPorArquivo[arquivo.id] = 'carregando';
+    renderizarLista();
+    renderizarDetalhe();
+
+    lerConteudoArquivo(arquivo.id, arquivo.mimeType)
+      .then(function (texto) {
+        transcricaoAtual = texto;
+        statusPorArquivo[arquivo.id] = 'revisao';
+        renderizarLista();
+        renderizarDetalhe();
+      })
+      .catch(function (erro) {
+        statusPorArquivo[arquivo.id] = 'naoAberto';
+        renderizarLista();
+        renderizarDetalhe(erro.message);
+      });
+  }
+
+  function gerarResumo() {
+    const botao = document.getElementById('btnGerarResumo');
+    if (botao) { botao.disabled = true; botao.textContent = 'Extraindo dados comerciais...'; }
+    gerarResumoComercialAPI(transcricaoAtual)
+      .then(function (resumo) {
+        resumoAtual = resumo;
+        passosAtuais = (resumo.proximosPassos || []).map(function (texto, i) {
+          return { id: i, texto: texto, feito: false };
+        });
+        renderizarDetalhe();
+      })
+      .catch(function (erro) {
+        renderizarDetalhe(null, 'Não consegui extrair os dados comerciais: ' + erro.message);
+      });
   }
 
   function aprovarEnviar() {
-    setEnviado(true);
-    if (selecionado) marcarStatus(selecionado.id, "enviado");
+    enviado = true;
+    if (selecionado) statusPorArquivo[selecionado.id] = 'enviado';
+    renderizarLista();
+    renderizarDetalhe();
   }
 
-  // A criação de tarefas no HubSpot fica para uma próxima fase, quando o e-mail do
-  // convite estiver vinculado ao contato no CRM. Por enquanto o checklist é só visual.
-
-  return (
-    <div className="px-8 py-10 grid gap-6" style={{ gridTemplateColumns: "300px 1fr" }}>
-      <div>
-        <h1 className="font-display text-2xl" style={{ color: tokens.ink }}>
-          Reuniões transcritas
-        </h1>
-        <p className="mt-1.5 text-sm flex items-center gap-1.5" style={{ color: tokens.inkSoft }}>
-          <FolderOpen size={13} />
-          Lidas direto da pasta do Drive · últimos 30 dias
-        </p>
-
-        {carregandoArquivos && (
-          <p className="text-sm mt-6 flex items-center gap-2" style={{ color: tokens.inkSoft }}>
-            <Loader2 size={14} className="animate-spin" />
-            Lendo a pasta do Drive...
-          </p>
-        )}
-        {erroArquivos && (
-          <div className="mt-6">
-            <p className="text-sm flex items-start gap-2" style={{ color: tokens.red }}>
-              <AlertCircle size={14} className="flex-shrink-0 mt-0.5" />
-              {erroArquivos}
-            </p>
-            <button
-              onClick={listarArquivos}
-              className="mt-2 flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-md"
-              style={{ backgroundColor: tokens.brandSoft, color: tokens.brand }}
-            >
-              <RefreshCw size={12} />
-              Tentar novamente
-            </button>
-          </div>
-        )}
-        {arquivos && arquivos.length === 0 && !erroArquivos && (
-          <p className="text-sm mt-6" style={{ color: tokens.inkSoft }}>
-            Nenhum arquivo modificado nos últimos 30 dias nessa pasta.
-          </p>
-        )}
-
-        <div className="mt-6 flex flex-col gap-2">
-          {arquivos &&
-            arquivos.map((a) => {
-              const status = statusMap[a.id] || "naoAberto";
-              const s = statusArquivoConfig[status];
-              const ativo = selecionado?.id === a.id;
-              return (
-                <button
-                  key={a.id}
-                  onClick={() => abrirArquivo(a)}
-                  className="text-left rounded-lg px-4 py-3 transition-colors"
-                  style={{
-                    backgroundColor: ativo ? tokens.brandSoft : tokens.surface,
-                    border: `1px solid ${ativo ? tokens.brand : tokens.border}`,
-                  }}
-                >
-                  <p className="text-sm font-semibold" style={{ color: tokens.ink }}>
-                    {a.nome}
-                  </p>
-                  <p className="text-xs mt-0.5" style={{ color: tokens.inkSoft }}>
-                    Modificado em {a.modificado}
-                  </p>
-                  <span
-                    className="inline-block mt-2 text-xs px-2 py-0.5 rounded-full"
-                    style={{ backgroundColor: s.soft, color: s.color }}
-                  >
-                    {s.label}
-                  </span>
-                </button>
-              );
-            })}
-        </div>
-      </div>
-
-      <div>
-        {!selecionado && (
-          <div
-            className="rounded-lg flex flex-col items-center justify-center text-center py-24"
-            style={{ backgroundColor: tokens.surface, border: `1px solid ${tokens.border}` }}
-          >
-            <FileText size={22} color={tokens.inkSoft} />
-            <p className="text-sm mt-3" style={{ color: tokens.inkSoft }}>
-              Escolha um arquivo transcrito à esquerda para gerar o resumo comercial.
-            </p>
-          </div>
-        )}
-
-        {selecionado && carregandoTranscricao && (
-          <div
-            className="rounded-lg flex flex-col items-center justify-center text-center py-24"
-            style={{ backgroundColor: tokens.surface, border: `1px solid ${tokens.border}` }}
-          >
-            <Loader2 size={22} color={tokens.inkSoft} className="animate-spin" />
-            <p className="text-sm mt-3" style={{ color: tokens.inkSoft }}>
-              Lendo a transcrição de "{selecionado.nome}"...
-            </p>
-          </div>
-        )}
-
-        {selecionado && erroTranscricao && !carregandoTranscricao && (
-          <div
-            className="rounded-lg flex flex-col items-center justify-center text-center py-16 px-6"
-            style={{ backgroundColor: tokens.redSoft, border: `1px solid ${tokens.border}` }}
-          >
-            <AlertCircle size={20} color={tokens.red} />
-            <p className="text-sm mt-3" style={{ color: tokens.red }}>
-              {erroTranscricao}
-            </p>
-          </div>
-        )}
-
-        {selecionado && transcricao && !carregandoTranscricao && (
-          <div className="flex flex-col gap-5">
-            <div>
-              <div className="flex items-center gap-2 text-xs" style={{ color: tokens.inkSoft }}>
-                <FileText size={14} />
-                Trecho da transcrição
-              </div>
-              <div
-                className="mt-2 rounded-lg px-4 py-3 text-sm leading-relaxed max-h-40 overflow-y-auto whitespace-pre-line"
-                style={{ backgroundColor: tokens.surfaceAlt, color: tokens.inkSoft }}
-              >
-                {transcricao.slice(0, 1200)}
-                {transcricao.length > 1200 ? "..." : ""}
-              </div>
-            </div>
-
-            {!resumo && (
-              <button
-                onClick={gerarResumoComercial}
-                disabled={gerandoResumo}
-                className="self-start flex items-center gap-2 text-sm px-4 py-2.5 rounded-lg text-white"
-                style={{ backgroundColor: tokens.indigo, opacity: gerandoResumo ? 0.7 : 1 }}
-              >
-                {gerandoResumo ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}
-                {gerandoResumo ? "Extraindo dados comerciais..." : "Gerar resumo comercial"}
-              </button>
-            )}
-            {erroResumo && (
-              <p className="text-sm flex items-center gap-1.5" style={{ color: tokens.red }}>
-                <AlertCircle size={13} />
-                {erroResumo}
-              </p>
-            )}
-
-            {resumo && (
-              <div className="grid gap-6" style={{ gridTemplateColumns: "1fr 1fr 0.85fr" }}>
-                {/* Resumo comercial */}
-                <div className="flex flex-col gap-3">
-                  <div className="flex items-center gap-2 text-xs" style={{ color: tokens.indigo }}>
-                    <Sparkles size={14} />
-                    Resumo comercial
-                  </div>
-
-                  <ResumoField label="Resumo executivo">
-                    <textarea
-                      value={resumo.resumoExecutivo}
-                      onChange={(e) => atualizarCampo(["resumoExecutivo"], e.target.value)}
-                      disabled={enviado}
-                      rows={4}
-                      className="w-full rounded-lg px-3 py-2 text-sm leading-relaxed outline-none"
-                      style={inputStyle()}
-                    />
-                  </ResumoField>
-
-                  <div className="grid grid-cols-2 gap-2.5">
-                    <ResumoField label="Orçamento — tipo">
-                      <input
-                        value={resumo.orcamento.tipo}
-                        onChange={(e) => atualizarCampo(["orcamento", "tipo"], e.target.value)}
-                        disabled={enviado}
-                        className="w-full rounded-lg px-3 py-2 text-sm outline-none"
-                        style={inputStyle()}
-                      />
-                    </ResumoField>
-                    <ResumoField label="Mensalidade">
-                      <input
-                        value={resumo.orcamento.mensalidade}
-                        onChange={(e) => atualizarCampo(["orcamento", "mensalidade"], e.target.value)}
-                        disabled={enviado}
-                        className="w-full rounded-lg px-3 py-2 text-sm outline-none"
-                        style={inputStyle()}
-                      />
-                    </ResumoField>
-                  </div>
-
-                  <button
-                    onClick={() =>
-                      !enviado &&
-                      atualizarCampo(["isencaoMensalidade", "temIsencao"], !resumo.isencaoMensalidade.temIsencao)
-                    }
-                    className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-left"
-                    style={{ backgroundColor: resumo.isencaoMensalidade.temIsencao ? tokens.brandSoft : tokens.surfaceAlt }}
-                  >
-                    <div
-                      className="w-9 h-5 rounded-full relative flex-shrink-0"
-                      style={{ backgroundColor: resumo.isencaoMensalidade.temIsencao ? tokens.brand : tokens.border }}
-                    >
-                      <span
-                        className="absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform"
-                        style={{ transform: resumo.isencaoMensalidade.temIsencao ? "translateX(17px)" : "translateX(2px)" }}
-                      />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-xs font-semibold" style={{ color: tokens.navy }}>
-                        Isenção de mensalidade
-                      </p>
-                      <p className="text-xs mt-0.5" style={{ color: tokens.inkSoft }}>
-                        {resumo.isencaoMensalidade.detalhe}
-                      </p>
-                    </div>
-                  </button>
-
-                  <div className="grid grid-cols-2 gap-2.5">
-                    <ResumoField label="Taxa de implantação">
-                      <input
-                        value={resumo.taxaImplantacao}
-                        onChange={(e) => atualizarCampo(["taxaImplantacao"], e.target.value)}
-                        disabled={enviado}
-                        className="w-full rounded-lg px-3 py-2 text-sm outline-none"
-                        style={inputStyle()}
-                      />
-                    </ResumoField>
-                    <ResumoField label="Data limite">
-                      <input
-                        value={resumo.dataLimiteOrcamento}
-                        onChange={(e) => atualizarCampo(["dataLimiteOrcamento"], e.target.value)}
-                        disabled={enviado}
-                        className="w-full rounded-lg px-3 py-2 text-sm outline-none"
-                        style={inputStyle()}
-                      />
-                    </ResumoField>
-                  </div>
-
-                  <ResumoField label="Desconto ou condição especial">
-                    <textarea
-                      value={resumo.descontoCondicaoEspecial}
-                      onChange={(e) => atualizarCampo(["descontoCondicaoEspecial"], e.target.value)}
-                      disabled={enviado}
-                      rows={3}
-                      className="w-full rounded-lg px-3 py-2 text-sm leading-relaxed outline-none"
-                      style={inputStyle()}
-                    />
-                  </ResumoField>
-                </div>
-
-                {/* Mensagem pronta para o cliente */}
-                <div className="flex flex-col gap-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 text-xs" style={{ color: tokens.indigo }}>
-                      <MessageCircle size={14} />
-                      Mensagem para o cliente (WhatsApp)
-                    </div>
-                    <CopyButton text={resumo.mensagemCliente} label="Copiar mensagem" />
-                  </div>
-
-                  <textarea
-                    value={resumo.mensagemCliente}
-                    onChange={(e) => atualizarCampo(["mensagemCliente"], e.target.value)}
-                    disabled={enviado}
-                    rows={14}
-                    className="w-full rounded-lg px-3.5 py-3 text-sm leading-relaxed outline-none flex-1"
-                    style={inputStyle()}
-                  />
-
-                  <div className="flex items-center gap-3">
-                    {enviado ? (
-                      <div
-                        className="flex items-center gap-2 text-sm px-4 py-2.5 rounded-lg"
-                        style={{ backgroundColor: tokens.brandSoft, color: tokens.brand }}
-                      >
-                        <CheckCircle2 size={16} />
-                        Enviado ao cliente
-                      </div>
-                    ) : (
-                      <button
-                        onClick={aprovarEnviar}
-                        className="flex items-center gap-2 text-sm px-4 py-2.5 rounded-lg text-white"
-                        style={{ backgroundColor: tokens.brand }}
-                      >
-                        <Send size={15} />
-                        Aprovar e enviar ao cliente
-                      </button>
-                    )}
-                  </div>
-                  <p className="text-xs" style={{ color: tokens.inkSoft }}>
-                    Assim que o e-mail do convite for vinculado ao contato no CRM, este resumo vai
-                    automaticamente para o campo de observação do negócio no HubSpot.
-                  </p>
-                </div>
-
-                {/* Próximos passos / checklist HubSpot */}
-                <div className="flex flex-col gap-3">
-                  <div className="flex items-center gap-2 text-xs" style={{ color: tokens.navy }}>
-                    <ListChecks size={14} />
-                    Próximos passos
-                  </div>
-
-                  <div
-                    className="rounded-lg p-3 flex flex-col gap-2"
-                    style={{ backgroundColor: tokens.surface, border: `1px solid ${tokens.border}` }}
-                  >
-                    {passos.map((p) => (
-                      <button
-                        key={p.id}
-                        onClick={() => toggleFeito(p.id)}
-                        className="flex items-start gap-2.5 text-left px-1.5 py-1 rounded-md"
-                      >
-                        {p.feito ? (
-                          <CheckCircle2 size={16} color={tokens.brand} className="flex-shrink-0 mt-0.5" />
-                        ) : (
-                          <Circle size={16} color={tokens.border} className="flex-shrink-0 mt-0.5" />
-                        )}
-                        <span
-                          className="text-sm"
-                          style={{
-                            color: p.feito ? tokens.inkSoft : tokens.ink,
-                            textDecoration: p.feito ? "line-through" : "none",
-                          }}
-                        >
-                          {p.texto}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-
-                  {tarefasCriadas ? (
-                    <div
-                      className="flex items-center gap-2 text-xs px-3 py-2.5 rounded-lg"
-                      style={{ backgroundColor: tokens.brandSoft, color: tokens.brand }}
-                    >
-                      <CheckCircle2 size={14} />
-                      Tarefas criadas no HubSpot
-                    </div>
-                  ) : (
-                    <button
-                      disabled
-                      title="Em breve — assim que o e-mail do convite estiver vinculado ao contato no CRM"
-                      className="flex items-center justify-center gap-2 text-xs font-semibold px-3 py-2.5 rounded-lg cursor-not-allowed"
-                      style={{ backgroundColor: tokens.surfaceAlt, color: tokens.inkSoft }}
-                    >
-                      <ClipboardCheck size={13} />
-                      Criar tarefas no HubSpot (em breve)
-                    </button>
-                  )}
-                  {mensagemTarefas && (
-                    <p className="text-xs" style={{ color: mensagemTarefas.ok ? tokens.brand : tokens.red }}>
-                      {mensagemTarefas.texto}
-                    </p>
-                  )}
-                  <p className="text-xs" style={{ color: tokens.inkSoft }}>
-                    Por enquanto este checklist é só para acompanhamento interno. A criação
-                    automática de tarefas no HubSpot entra numa próxima fase, junto com o
-                    vínculo do e-mail do convite ao contato no CRM.
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-export default function Malha() {
-  const [tab, setTab] = useState("todos");
-  const [pendenciasOpen, setPendenciasOpen] = useState(true);
-  const [resolvidas, setResolvidas] = useState([]);
-  const [conexoes, setConexoes] = useState({ hubspot: true, whatsapp: true, blip: true });
-  const [apoioOpen, setApoioOpen] = useState(false);
-
-  const emPendencias = ["todos", "hubspot", "whatsapp", "blip"].includes(tab);
-  const emApoio = apoioSubItems.some((item) => item.id === tab);
-  const listaFiltrada =
-    tab === "todos" ? pendencias : pendencias.filter((p) => p.fonte === tab);
-
-  function toggleResolvida(id) {
-    setResolvidas((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
+  function copiarTexto(texto, botaoId) {
+    navigator.clipboard.writeText(texto).then(function () {
+      const b = document.getElementById(botaoId);
+      if (b) {
+        const original = b.textContent;
+        b.textContent = 'Copiado!';
+        b.classList.add('ok');
+        setTimeout(function () { b.textContent = original; b.classList.remove('ok'); }, 1500);
+      }
+    });
   }
 
-  return (
-    <div
-      className="flex h-screen w-full overflow-hidden"
-      style={{ backgroundColor: tokens.bg, color: tokens.ink }}
-    >
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap');
-        .font-display { font-family: 'Fraunces', serif; }
-        .font-body { font-family: 'Inter', sans-serif; }
-      `}</style>
+  function atualizarCampoResumo(caminho, valor) {
+    if (caminho.length === 1) resumoAtual[caminho[0]] = valor;
+    else resumoAtual[caminho[0]][caminho[1]] = valor;
+  }
 
-      {/* Sidebar */}
-      <aside
-        className="w-64 flex-shrink-0 flex flex-col justify-between font-body py-6 px-4"
-        style={{ backgroundColor: tokens.sidebarBg }}
-      >
-        <nav className="flex flex-col gap-1">
-          <button
-            onClick={() => setTab("inicio")}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-left"
-            style={{
-              backgroundColor: tab === "inicio" ? tokens.sidebarActive : "transparent",
-              color: tokens.navy,
-              fontWeight: tab === "inicio" ? 700 : 500,
-              boxShadow: tab === "inicio" ? "0 1px 2px rgba(18,40,91,0.08)" : "none",
-            }}
-          >
-            <Home size={18} />
-            Início
-          </button>
+  function renderizarDetalhe(erroTranscricao, erroResumo) {
+    const el = document.getElementById('detalhe');
+    if (!selecionado) { el.innerHTML = '<div class="vazio">Escolha um arquivo transcrito à esquerda para gerar o resumo comercial.</div>'; return; }
+    if (erroTranscricao) { el.innerHTML = '<div class="erro">' + escaparHtml(erroTranscricao) + '</div>'; return; }
+    if (!transcricaoAtual) { el.innerHTML = '<div class="vazio">Lendo transcrição de "' + escaparHtml(selecionado.nome) + '"...</div>'; return; }
 
-          <button
-            onClick={() => {
-              setPendenciasOpen((v) => !v);
-              if (!emPendencias) setTab("todos");
-            }}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-left mt-1"
-            style={{
-              backgroundColor: emPendencias ? tokens.sidebarActive : "transparent",
-              color: tokens.navy,
-              fontWeight: 700,
-              boxShadow: emPendencias ? "0 1px 2px rgba(18,40,91,0.08)" : "none",
-            }}
-          >
-            <Inbox size={18} />
-            Pendências
-            <span
-              className="ml-auto text-xs px-1.5 rounded-full"
-              style={{ backgroundColor: tokens.amber, color: "white" }}
-            >
-              {pendencias.length - resolvidas.length}
-            </span>
-            {pendenciasOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-          </button>
+    let html = '<div class="transcricao">' + escaparHtml(transcricaoAtual.slice(0, 1200)) + (transcricaoAtual.length > 1200 ? '...' : '') + '</div>';
 
-          {pendenciasOpen && (
-            <div className="flex flex-col ml-9 mt-0.5 mb-1">
-              {pendenciaSubItems.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => setTab(item.id)}
-                  className="text-left text-sm py-1.5 px-2 rounded-md"
-                  style={{
-                    color: tab === item.id ? tokens.navy : tokens.navySoft,
-                    fontWeight: tab === item.id ? 700 : 500,
-                    backgroundColor: tab === item.id ? tokens.brandSoft : "transparent",
-                  }}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          )}
+    if (!resumoAtual) {
+      html += '<button class="btn btn-primario" id="btnGerarResumo" onclick="gerarResumo()">Gerar resumo comercial</button>';
+      if (erroResumo) html += '<div class="erro">' + escaparHtml(erroResumo) + '</div>';
+      el.innerHTML = html;
+      return;
+    }
 
-          <button
-            onClick={() => setTab("integracoes")}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-left mt-1"
-            style={{
-              backgroundColor: tab === "integracoes" ? tokens.sidebarActive : "transparent",
-              color: tokens.navy,
-              fontWeight: tab === "integracoes" ? 700 : 500,
-              boxShadow: tab === "integracoes" ? "0 1px 2px rgba(18,40,91,0.08)" : "none",
-            }}
-          >
-            <Plug size={18} />
-            Integrações
-          </button>
+    const r = resumoAtual;
+    const dis = enviado ? 'disabled' : '';
 
-          <button
-            onClick={() => {
-              setApoioOpen((v) => !v);
-              if (!emApoio) setTab("apoio-interno");
-            }}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-left mt-1"
-            style={{
-              backgroundColor: emApoio ? tokens.sidebarActive : "transparent",
-              color: tokens.navy,
-              fontWeight: 700,
-              boxShadow: emApoio ? "0 1px 2px rgba(18,40,91,0.08)" : "none",
-            }}
-          >
-            <Briefcase size={18} />
-            Apoio de Vendas
-            {apoioOpen ? <ChevronDown size={14} className="ml-auto" /> : <ChevronRight size={14} className="ml-auto" />}
-          </button>
+    html += '<div class="colunas">';
+    html += '<div>';
+    html += '<div class="campo"><label>Resumo executivo</label><textarea rows="4" ' + dis + ' oninput="atualizarCampoResumo([\'resumoExecutivo\'], this.value)">' + escaparHtml(r.resumoExecutivo) + '</textarea></div>';
+    html += '<div class="grid2">';
+    html += '<div class="campo"><label>Orçamento — tipo</label><input ' + dis + ' oninput="atualizarCampoResumo([\'orcamento\',\'tipo\'], this.value)" value="' + escaparHtml(r.orcamento.tipo) + '"></div>';
+    html += '<div class="campo"><label>Mensalidade</label><input ' + dis + ' oninput="atualizarCampoResumo([\'orcamento\',\'mensalidade\'], this.value)" value="' + escaparHtml(r.orcamento.mensalidade) + '"></div>';
+    html += '</div>';
+    html += '<div class="toggle-linha' + (r.isencaoMensalidade.temIsencao ? ' ativo' : '') + '" onclick="' +
+      (enviado ? '' : 'this.querySelector(\'.toggle\').classList.toggle(\'ativo\'); atualizarCampoResumo([\'isencaoMensalidade\',\'temIsencao\'], this.querySelector(\'.toggle\').classList.contains(\'ativo\'));') + '">' +
+      '<div class="toggle' + (r.isencaoMensalidade.temIsencao ? ' ativo' : '') + '"><div class="bola"></div></div>' +
+      '<div class="toggle-texto"><strong>Isenção de mensalidade</strong><span>' + escaparHtml(r.isencaoMensalidade.detalhe) + '</span></div></div>';
+    html += '<div class="grid2">';
+    html += '<div class="campo"><label>Taxa de implantação</label><input ' + dis + ' oninput="atualizarCampoResumo([\'taxaImplantacao\'], this.value)" value="' + escaparHtml(r.taxaImplantacao) + '"></div>';
+    html += '<div class="campo"><label>Data limite</label><input ' + dis + ' oninput="atualizarCampoResumo([\'dataLimiteOrcamento\'], this.value)" value="' + escaparHtml(r.dataLimiteOrcamento) + '"></div>';
+    html += '</div>';
+    html += '<div class="campo"><label>Desconto ou condição especial</label><textarea rows="3" ' + dis + ' oninput="atualizarCampoResumo([\'descontoCondicaoEspecial\'], this.value)">' + escaparHtml(r.descontoCondicaoEspecial) + '</textarea></div>';
+    html += '</div>';
 
-          {apoioOpen && (
-            <div className="flex flex-col ml-9 mt-0.5 mb-1">
-              {apoioSubItems.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => setTab(item.id)}
-                  className="text-left text-sm py-1.5 px-2 rounded-md"
-                  style={{
-                    color: tab === item.id ? tokens.navy : tokens.navySoft,
-                    fontWeight: tab === item.id ? 700 : 500,
-                    backgroundColor: tab === item.id ? tokens.brandSoft : "transparent",
-                  }}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          )}
-        </nav>
+    html += '<div>';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><label style="font-size:11px;font-weight:600;color:var(--navy);">Mensagem para o cliente (WhatsApp)</label><button class="copiar" id="btnCopiarMsg" onclick="copiarTexto(resumoAtual.mensagemCliente, \'btnCopiarMsg\')">Copiar mensagem</button></div>';
+    html += '<div class="campo"><textarea rows="14" ' + dis + ' oninput="atualizarCampoResumo([\'mensagemCliente\'], this.value)">' + escaparHtml(r.mensagemCliente) + '</textarea></div>';
+    html += enviado
+      ? '<div class="btn btn-secundario">✓ Enviado ao cliente</div>'
+      : '<button class="btn btn-primario" onclick="aprovarEnviar()">Aprovar e enviar ao cliente</button>';
+    html += '<p class="aviso">Assim que o e-mail do convite for vinculado ao contato no CRM, este resumo vai automaticamente para o campo de observação do negócio no HubSpot.</p>';
+    html += '</div>';
 
-        <div className="px-3 py-4 text-xs" style={{ color: tokens.navySoft }}>
-          Conectado como<br />
-          <span style={{ color: tokens.navy, fontWeight: 600 }}>Ana Beatriz · Comercial</span>
-        </div>
-      </aside>
+    html += '<div>';
+    html += '<label style="font-size:11px;font-weight:600;color:var(--navy);display:block;margin-bottom:6px;">Próximos passos</label>';
+    html += '<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px;">';
+    passosAtuais.forEach(function (p, i) {
+      html += '<label class="passo' + (p.feito ? ' feito' : '') + '"><input type="checkbox" ' + (p.feito ? 'checked' : '') + ' onchange="passosAtuais[' + i + '].feito = this.checked; renderizarDetalhe();">' + escaparHtml(p.texto) + '</label>';
+    });
+    html += '</div>';
+    html += '<button class="btn btn-secundario" disabled title="Em breve" style="margin-top:10px;">Criar tarefas no HubSpot (em breve)</button>';
+    html += '<p class="aviso">Checklist só para acompanhamento interno por enquanto.</p>';
+    html += '</div>';
+    html += '</div>';
 
-      {/* Main */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <header
-          className="flex items-center justify-between px-8 py-4 flex-shrink-0"
-          style={{ backgroundColor: tokens.surface, borderBottom: `1px solid ${tokens.border}` }}
-        >
-          <span className="text-sm font-semibold font-body" style={{ color: tokens.navySoft }}>
-            {sectionTitles[tab]}
-          </span>
-          <NiboLogo />
-        </header>
-
-        <main className="flex-1 overflow-y-auto font-body">
-        {tab === "inicio" && (
-          <div className="max-w-3xl mx-auto px-8 py-10">
-            <h1 className="font-display text-3xl" style={{ color: tokens.ink }}>
-              Bom dia, Ana Beatriz
-            </h1>
-            <p className="mt-1.5 text-sm" style={{ color: tokens.inkSoft }}>
-              Um resumo do que precisa da sua atenção hoje.
-            </p>
-
-            <div className="mt-8 grid grid-cols-2 gap-4">
-              <button
-                onClick={() => setTab("todos")}
-                className="text-left rounded-lg p-5"
-                style={{ backgroundColor: tokens.surface, border: `1px solid ${tokens.border}` }}
-              >
-                <p className="text-3xl font-display" style={{ color: tokens.brand }}>
-                  {pendencias.length - resolvidas.length}
-                </p>
-                <p className="text-sm mt-1" style={{ color: tokens.inkSoft }}>
-                  pendências em aberto entre CRM, Whatsapp e Blip
-                </p>
-              </button>
-              <button
-                onClick={() => setTab("reunioes")}
-                className="text-left rounded-lg p-5 flex items-center gap-3"
-                style={{ backgroundColor: tokens.surface, border: `1px solid ${tokens.border}` }}
-              >
-                <FolderOpen size={26} style={{ color: tokens.indigo }} />
-                <p className="text-sm" style={{ color: tokens.inkSoft }}>
-                  Ver reuniões transcritas na pasta do Drive e gerar resumos comerciais
-                </p>
-              </button>
-              <GoogleAgendaCard />
-            </div>
-          </div>
-        )}
-
-        {emPendencias && (
-          <div className="max-w-3xl mx-auto px-8 py-10">
-            <h1 className="font-display text-3xl" style={{ color: tokens.ink }}>
-              {tab === "todos" ? "Todas as pendências" : sectionTitles[tab]}
-            </h1>
-            <p className="mt-1.5 text-sm" style={{ color: tokens.inkSoft }}>
-              Tudo que está esperando uma resposta sua, num só lugar.
-            </p>
-
-            <div className="mt-8 flex flex-col gap-2">
-              {listaFiltrada.length === 0 && (
-                <p className="text-sm py-8 text-center" style={{ color: tokens.inkSoft }}>
-                  Nenhuma pendência aqui no momento.
-                </p>
-              )}
-              {listaFiltrada.map((p) => {
-                const f = fonteConfig[p.fonte];
-                const Icon = f.icon;
-                const resolvida = resolvidas.includes(p.id);
-                return (
-                  <div
-                    key={p.id}
-                    className="flex items-center gap-4 rounded-lg pl-4 pr-4 py-3.5 transition-opacity"
-                    style={{
-                      backgroundColor: tokens.surface,
-                      borderLeft: `3px solid ${f.color}`,
-                      opacity: resolvida ? 0.45 : 1,
-                    }}
-                  >
-                    <button onClick={() => toggleResolvida(p.id)} className="flex-shrink-0">
-                      {resolvida ? (
-                        <CheckCircle2 size={20} color={tokens.brand} />
-                      ) : (
-                        <Circle size={20} color={tokens.border} />
-                      )}
-                    </button>
-
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 text-xs" style={{ color: f.color }}>
-                        <Icon size={13} />
-                        {f.label}
-                      </div>
-                      <p
-                        className="text-sm mt-0.5"
-                        style={{
-                          color: tokens.ink,
-                          textDecoration: resolvida ? "line-through" : "none",
-                        }}
-                      >
-                        <span style={{ fontWeight: 600 }}>{p.cliente}</span> — {p.texto}
-                      </p>
-                    </div>
-
-                    <div className="flex-shrink-0 text-right">
-                      <span
-                        className="text-xs px-2 py-0.5 rounded-full"
-                        style={{
-                          backgroundColor: p.prioridade === "Alta" ? tokens.redSoft : tokens.surfaceAlt,
-                          color: p.prioridade === "Alta" ? tokens.red : tokens.inkSoft,
-                        }}
-                      >
-                        {p.prioridade}
-                      </span>
-                      <div className="flex items-center gap-1 text-xs mt-1.5" style={{ color: tokens.inkSoft }}>
-                        <Clock size={12} />
-                        {p.hora}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {tab === "reunioes" && <ReunioesTranscritas />}
-
-        {tab === "integracoes" && (
-          <div className="max-w-2xl mx-auto px-8 py-10">
-            <h1 className="font-display text-3xl" style={{ color: tokens.ink }}>
-              Integrações
-            </h1>
-            <p className="mt-1.5 text-sm" style={{ color: tokens.inkSoft }}>
-              As fontes que alimentam sua central de pendências.
-            </p>
-
-            <div className="mt-8 flex flex-col">
-              {integracoes.map((i, idx) => {
-                const Icon = i.icon;
-                const on = conexoes[i.id];
-                return (
-                  <div
-                    key={i.id}
-                    className="flex items-center gap-4 py-4"
-                    style={{ borderTop: idx === 0 ? "none" : `1px solid ${tokens.border}` }}
-                  >
-                    <div
-                      className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-                      style={{ backgroundColor: tokens.brandSoft, color: tokens.brand }}
-                    >
-                      <Icon size={18} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold" style={{ color: tokens.ink }}>
-                        {i.nome}
-                      </p>
-                      <p className="text-xs mt-0.5" style={{ color: tokens.inkSoft }}>
-                        {on ? i.detalhe : "Desconectado"}
-                      </p>
-                    </div>
-                    <Toggle
-                      on={on}
-                      onClick={() => setConexoes((prev) => ({ ...prev, [i.id]: !prev[i.id] }))}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-
-            <div
-              className="mt-8 flex items-center gap-2 text-sm px-4 py-3 rounded-lg"
-              style={{ backgroundColor: tokens.indigoSoft, color: tokens.indigo }}
-            >
-              <ChevronRight size={16} />
-              Próxima integração sugerida: leitura automática de gravações do Google Meet.
-            </div>
-          </div>
-        )}
-
-        {tab === "apoio-interno" && (
-          <ListaSimples
-            title="Interno"
-            subtitle="Acessos e ferramentas internas do dia a dia."
-            links={linksInterno}
-          />
-        )}
-        {tab === "apoio-metabase" && (
-          <ListaSimples
-            title="Metabase (Consultas)"
-            subtitle="Consultas prontas para tirar dúvidas rápidas sobre clientes."
-            links={linksMetabase}
-          />
-        )}
-        {tab === "apoio-cliente" && (
-          <ListaSimples
-            title="Envio para o cliente"
-            subtitle="Apresentações, tutoriais e materiais para compartilhar."
-            links={linksCliente}
-          />
-        )}
-        {tab === "apoio-cupons" && <CuponsPage />}
-        {tab === "apoio-sucesso" && <SucessoBpoPage />}
-        {tab === "apoio-wpp" && <WhatsappEquipePage />}
-        </main>
-      </div>
-    </div>
-  );
-}
+    el.innerHTML = html;
+  }
+</script>
+</body>
+</html>
